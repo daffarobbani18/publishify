@@ -248,16 +248,16 @@ export default function AdminDashboardPage() {
             </button>
 
             <button
-              onClick={() => router.push("/dashboard/admin/monitoring")}
-              className="flex items-center gap-4 p-4 border-2 border-blue-200 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
+              onClick={() => router.push("/dashboard/admin/monitoring-review")}
+              className="flex items-center gap-4 p-4 border-2 border-teal-200 rounded-xl hover:border-teal-400 hover:bg-teal-50 transition-all group"
             >
-              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>
               <div className="text-left">
-                <p className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                <p className="font-semibold text-gray-900 group-hover:text-teal-600 transition-colors">
                   Monitoring Review
                 </p>
                 <p className="text-sm text-gray-600">{statistik.reviewAktif} review aktif</p>
