@@ -141,6 +141,15 @@ export const naskahApi = {
   },
 
   /**
+   * GET /naskah/admin/:id - Ambil detail naskah by ID untuk admin (bypass validasi akses)
+   * Role: admin only
+   */
+  async ambilNaskahByIdAdmin(id: string): Promise<ResponseSukses<Naskah>> {
+    const { data } = await api.get<ResponseSukses<Naskah>>(`/naskah/admin/${id}`);
+    return data;
+  },
+
+  /**
    * PUT /naskah/:id - Perbarui naskah
    */
   async perbaruiNaskah(id: string, payload: Partial<BuatNaskahPayload>): Promise<ResponseSukses<Naskah>> {

@@ -491,9 +491,14 @@ export default function MonitoringReviewPage() {
                     >
                       <td className="px-6 py-4">
                         <div className="max-w-xs">
-                          <p className="font-semibold text-gray-900 truncate">
+                          <button
+                            onClick={() =>
+                              router.push(`/dashboard/admin/naskah/${review.naskah?.id}`)
+                            }
+                            className="font-semibold text-gray-900 truncate hover:text-[#14b8a6] transition-colors text-left"
+                          >
                             {review.naskah?.judul || "Tidak tersedia"}
-                          </p>
+                          </button>
                           {review.naskah?.kategori && (
                             <span className="inline-block mt-1 px-2 py-0.5 bg-[#e8f5f4] text-[#0d7377] text-xs rounded-full">
                               {review.naskah.kategori.nama}
