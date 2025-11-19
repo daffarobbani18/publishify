@@ -50,8 +50,11 @@ export interface FilterPenggunaParams {
   halaman?: number;
   limit?: number;
   cari?: string;
-  jenisPeran?: JenisPeran;
+  peran?: JenisPeran; // Backend menggunakan parameter 'peran', bukan 'jenisPeran'
   aktif?: boolean;
+  terverifikasi?: boolean;
+  urutkan?: "dibuatPada" | "email" | "namaDepan";
+  arah?: "asc" | "desc";
 }
 
 export interface ResponseSukses<T> {

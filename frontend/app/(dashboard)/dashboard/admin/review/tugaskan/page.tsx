@@ -162,7 +162,7 @@ function TugaskanReviewContent() {
 
       const [responseNaskah, responseEditor] = await Promise.all([
         naskahApi.ambilNaskahByIdAdmin(naskahId),
-        penggunaApi.ambilSemuaPengguna({ jenisPeran: "editor", aktif: true }),
+        penggunaApi.ambilSemuaPengguna({ peran: "editor", aktif: true }),
       ]);
 
       if (responseNaskah.sukses) {
