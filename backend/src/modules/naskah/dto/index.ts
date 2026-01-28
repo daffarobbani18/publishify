@@ -16,3 +16,9 @@ export * from './ajukan-naskah.dto';
 
 // Terbitkan Naskah
 export * from './terbitkan-naskah.dto';
+
+// Ubah Status Naskah
+export * from './ubah-status-naskah.dto';
+
+// Submit Revisi
+export * from './submit-revisi.dto';

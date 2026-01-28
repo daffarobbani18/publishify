@@ -8,7 +8,7 @@ export const FilterPenggunaSchema = z.object({
   halaman: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cari: z.string().optional(),
-  peran: z.enum(['penulis', 'editor', 'percetakan', 'admin']).optional(),
+  peran: z.enum(['penulis', 'editor', 'admin']).optional(),
   aktif: z.coerce.boolean().optional(),
   terverifikasi: z.coerce.boolean().optional(),
   urutkan: z.enum(['dibuatPada', 'email', 'namaDepan']).default('dibuatPada'),
@@ -55,11 +55,11 @@ export class FilterPenggunaDtoClass {
 
   @ApiProperty({
     description: 'Filter berdasarkan peran',
-    enum: ['penulis', 'editor', 'percetakan', 'admin'],
+    enum: ['penulis', 'editor', 'admin'],
     required: false,
     type: String,
   })
-  peran?: 'penulis' | 'editor' | 'percetakan' | 'admin';
+  peran?: 'penulis' | 'editor' | 'admin';
 
   @ApiProperty({
     description: 'Filter berdasarkan status aktif',

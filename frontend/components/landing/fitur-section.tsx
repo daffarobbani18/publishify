@@ -62,9 +62,9 @@ export function FiturSection() {
           />
         </svg>
       ),
-      judul: "Layanan Percetakan",
+      judul: "Penerbitan Digital",
       deskripsi:
-        "Cetak buku Anda dengan kualitas terbaik. Pilih dari berbagai pilihan kertas, ukuran, dan finishing.",
+        "Terbitkan buku digital Anda dengan mudah. Distribusi ke berbagai platform digital dalam sekali klik.",
     },
     {
       icon: (
@@ -129,15 +129,21 @@ export function FiturSection() {
   ];
 
   return (
-    <section id="fitur" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50">
+    <section
+      id="fitur"
+      className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-white to-gray-50"
+    >
       <div className="max-w-7xl mx-auto">
         {/* Section Header */}
         <div className="text-center mb-20">
           <div className="inline-block mb-4">
-            <span className="text-[#14b8a6] font-semibold text-sm uppercase tracking-wider">Fitur Unggulan</span>
+            <span className="text-[#14b8a6] font-semibold text-sm uppercase tracking-wider">
+              Fitur Unggulan
+            </span>
           </div>
           <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
-            Fitur Lengkap untuk <span className="text-[#14b8a6]">Kesuksesan</span> Anda
+            Fitur Lengkap untuk{" "}
+            <span className="text-[#14b8a6]">Kesuksesan</span> Anda
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Publishify menyediakan semua yang Anda butuhkan untuk menerbitkan
@@ -170,19 +176,29 @@ export function FiturSection() {
               <h3 className="text-xl font-bold text-gray-900 mb-3">
                 {fitur.judul}
               </h3>
-              <p className="text-gray-600 leading-relaxed">
-                {fitur.deskripsi}
-              </p>
-              
+              <p className="text-gray-600 leading-relaxed">{fitur.deskripsi}</p>
+
               {/* Animated Arrow */}
               <div
                 className={`mt-4 flex items-center gap-2 text-[#14b8a6] font-semibold transition-all duration-300 ${
-                  hoveredIndex === index ? "translate-x-2 opacity-100" : "translate-x-0 opacity-0"
+                  hoveredIndex === index
+                    ? "translate-x-2 opacity-100"
+                    : "translate-x-0 opacity-0"
                 }`}
               >
                 <span className="text-sm">Pelajari lebih lanjut</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
                 </svg>
               </div>
             </div>

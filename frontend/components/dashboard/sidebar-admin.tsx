@@ -14,9 +14,6 @@ import {
   Library,
   BookOpen,
   Tags,
-  Printer,
-  ShoppingCart,
-  Truck,
   Users,
   Settings,
   LogOut,
@@ -24,6 +21,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  Package,
 } from "lucide-react";
 
 // Interface untuk menu item
@@ -47,7 +45,9 @@ export function SidebarAdmin() {
   const router = useRouter();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [openSections, setOpenSections] = useState<string[]>(["Manajemen Naskah"]);
+  const [openSections, setOpenSections] = useState<string[]>([
+    "Manajemen Naskah",
+  ]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const { pengguna, logout } = useAuthStore();
@@ -55,7 +55,7 @@ export function SidebarAdmin() {
   // Toggle section
   const toggleSection = (title: string) => {
     setOpenSections((prev) =>
-      prev.includes(title) ? prev.filter((s) => s !== title) : [...prev, title]
+      prev.includes(title) ? prev.filter((s) => s !== title) : [...prev, title],
     );
   };
 
@@ -122,18 +122,13 @@ export function SidebarAdmin() {
       ],
     },
     {
-      title: "Percetakan & Order",
-      icon: <Printer className="w-5 h-5" />,
+      title: "Penerbitan",
+      icon: <Package className="w-5 h-5" />,
       items: [
         {
-          label: "Pesanan Cetak",
-          icon: <ShoppingCart className="w-4 h-4" />,
-          href: "/admin/pesanan",
-        },
-        {
-          label: "Pengiriman",
-          icon: <Truck className="w-4 h-4" />,
-          href: "/admin/pengiriman",
+          label: "Pesanan Terbit",
+          icon: <Package className="w-4 h-4" />,
+          href: "/admin/pesanan-terbit",
         },
       ],
     },
@@ -305,7 +300,11 @@ export function SidebarAdmin() {
         className="lg:hidden fixed top-4 left-4 z-50 p-2.5 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all"
         aria-label="Toggle Menu"
       >
-        {isMobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        {isMobileOpen ? (
+          <X className="w-6 h-6" />
+        ) : (
+          <Menu className="w-6 h-6" />
+        )}
       </button>
 
       {/* Overlay untuk mobile */}

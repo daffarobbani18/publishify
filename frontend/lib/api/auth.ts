@@ -28,11 +28,11 @@ export interface Pengguna {
     kodePos?: string;
   };
   // Backend mengirim 'peran' sebagai array string
-  peran?: ("penulis" | "editor" | "percetakan" | "admin")[];
+  peran?: ("penulis" | "editor" | "admin")[];
   // Format lengkap (opsional untuk kompatibilitas)
   peranPengguna?: Array<{
     id: string;
-    jenisPeran: "penulis" | "editor" | "percetakan" | "admin";
+    jenisPeran: "penulis" | "editor" | "admin";
     aktif: boolean;
   }>;
 }
@@ -44,7 +44,7 @@ export interface RegisterDto {
   namaDepan: string;
   namaBelakang?: string;
   telepon?: string;
-  jenisPeran: "penulis" | "editor" | "percetakan";
+  jenisPeran: "penulis" | "editor";
   alamat?: string;
   kota?: string;
   provinsi?: string;
@@ -137,7 +137,7 @@ export const authApi = {
    */
   async verifyEmail(token: string): Promise<VerifyEmailResponse> {
     const response = await api.get<VerifyEmailResponse>(
-      `/auth/verify-email/${token}`
+      `/auth/verify-email/${token}`,
     );
     return response.data;
   },
@@ -146,7 +146,7 @@ export const authApi = {
    * Request forgot password (kirim email reset)
    */
   async forgotPassword(
-    email: string
+    email: string,
   ): Promise<{ sukses: boolean; pesan: string }> {
     const response = await api.post("/auth/forgot-password", { email });
     return response.data;
@@ -157,7 +157,7 @@ export const authApi = {
    */
   async resetPassword(
     token: string,
-    kataSandiBaru: string
+    kataSandiBaru: string,
   ): Promise<{ sukses: boolean; pesan: string }> {
     const response = await api.post(`/auth/reset-password/${token}`, {
       kataSandiBaru,
@@ -178,7 +178,7 @@ export const authApi = {
    */
   async updatePassword(
     kataSandiLama: string,
-    kataSandiBaru: string
+    kataSandiBaru: string,
   ): Promise<{ sukses: boolean; pesan: string }> {
     const response = await api.put("/auth/update-password", {
       kataSandiLama,

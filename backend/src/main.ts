@@ -61,8 +61,6 @@ async function bootstrap() {
     .addTag('pengguna', 'Endpoint untuk manajemen pengguna')
     .addTag('naskah', 'Endpoint untuk manajemen naskah')
     .addTag('review', 'Endpoint untuk sistem review naskah')
-    .addTag('percetakan', 'Endpoint untuk manajemen percetakan')
-    .addTag('pembayaran', 'Endpoint untuk sistem pembayaran')
     .addTag('notifikasi', 'Endpoint untuk notifikasi real-time')
     .addTag('upload', 'Endpoint untuk upload file')
     .build();

@@ -27,21 +27,35 @@ api.interceptors.request.use(
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+
+      // DEBUG: Log token status
+      if (
+        process.env.NODE_ENV === "development" &&
+        config.url?.includes("statistik")
+      ) {
+        console.log(`🔐 Auth Debug for ${config.url}:`, {
+          hasToken: !!token,
+          tokenPreview: token ? `${token.substring(0, 30)}...` : "null",
+        });
+      }
     }
-    
+
     // Log request untuk debugging (hanya di development)
     if (process.env.NODE_ENV === "development") {
-      console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`, {
-        params: config.params,
-        data: config.data,
-      });
+      console.log(
+        `[API Request] ${config.method?.toUpperCase()} ${config.url}`,
+        {
+          params: config.params,
+          data: config.data,
+        },
+      );
     }
-    
+
     return config;
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -51,10 +65,13 @@ api.interceptors.response.use(
   (response) => {
     // Log response untuk debugging (hanya di development)
     if (process.env.NODE_ENV === "development") {
-      console.log(`[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`, {
-        status: response.status,
-        data: response.data,
-      });
+      console.log(
+        `[API Response] ${response.config.method?.toUpperCase()} ${response.config.url}`,
+        {
+          status: response.status,
+          data: response.data,
+        },
+      );
     }
     return response;
   },
@@ -64,27 +81,33 @@ api.interceptors.response.use(
       console.error(
         `[API Error] ${error.config?.method?.toUpperCase()} ${error.config?.url}`,
         error.response?.status,
-        error.response?.data || error.message
+        error.response?.data || error.message,
       );
-      
+
       // Special handling untuk Network Error
       if (error.message === "Network Error") {
         console.error("❌ BACKEND TIDAK DAPAT DIAKSES!");
         console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         console.error("🔍 Kemungkinan penyebab:");
-        console.error("  1. Backend tidak running (jalankan: cd backend && npm run start:dev)");
+        console.error(
+          "  1. Backend tidak running (jalankan: cd backend && npm run start:dev)",
+        );
         console.error("  2. Backend crash atau error");
         console.error("  3. Port 4000 sudah digunakan aplikasi lain");
         console.error("  4. Firewall memblokir koneksi");
         console.error("");
         console.error("🛠️  Solusi:");
-        console.error("  1. Pastikan backend berjalan di http://localhost:4000");
+        console.error(
+          "  1. Pastikan backend berjalan di http://localhost:4000",
+        );
         console.error("  2. Cek terminal backend untuk error");
-        console.error("  3. Test dengan: curl http://localhost:4000/api/health");
+        console.error(
+          "  3. Test dengan: curl http://localhost:4000/api/health",
+        );
         console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
       }
     }
-    
+
     const originalRequest = error.config as any;
 
     // Jika error 401 dan belum retry
@@ -120,7 +143,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 /**
@@ -142,22 +165,30 @@ export interface Response<T = any> {
  * Helper function: Sanitize query params untuk memastikan tipe data yang benar
  * Prisma strict dengan tipe data, jadi halaman & limit harus number, bukan string
  */
-export function sanitizeParams(params?: Record<string, any>): Record<string, any> {
+export function sanitizeParams(
+  params?: Record<string, any>,
+): Record<string, any> {
   if (!params) return {};
-  
+
   const cleaned: Record<string, any> = {};
-  
+
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === null) continue;
-    
+
     // Convert numeric fields to number
-    if (key === 'halaman' || key === 'limit' || key === 'page' || key === 'take' || key === 'skip') {
+    if (
+      key === "halaman" ||
+      key === "limit" ||
+      key === "page" ||
+      key === "take" ||
+      key === "skip"
+    ) {
       cleaned[key] = Number(value);
     } else {
       cleaned[key] = value;
     }
   }
-  
+
   return cleaned;
 }
 

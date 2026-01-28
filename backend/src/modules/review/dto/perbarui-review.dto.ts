@@ -1,12 +1,14 @@
 import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
-import { StatusReview } from '@prisma/client';
+import { StatusReview, Rekomendasi } from '@prisma/client';
 
 /**
  * Schema Zod untuk update review (status tracking)
  */
 export const PerbaruiReviewSchema = z.object({
   status: z.nativeEnum(StatusReview).optional(),
+
+  rekomendasi: z.nativeEnum(Rekomendasi).optional(),
 
   catatan: z.string().max(1000, 'Catatan maksimal 1000 karakter').trim().optional().nullable(),
 
@@ -28,6 +30,13 @@ export class PerbaruiReviewDtoClass {
     required: false,
   })
   status?: StatusReview;
+
+  @ApiProperty({
+    description: 'Rekomendasi review (setujui, revisi, tolak)',
+    enum: Rekomendasi,
+    required: false,
+  })
+  rekomendasi?: Rekomendasi;
 
   @ApiProperty({
     description: 'Catatan review',

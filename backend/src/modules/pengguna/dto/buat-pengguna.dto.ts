@@ -40,7 +40,7 @@ export const BuatPenggunaSchema = z.object({
   namaBelakang: z.string().max(50, 'Nama belakang maksimal 50 karakter').trim().optional(),
 
   jenisPeran: z
-    .enum(['penulis', 'editor', 'percetakan', 'admin'], {
+    .enum(['penulis', 'editor', 'admin'], {
       required_error: 'Jenis peran wajib dipilih',
       invalid_type_error: 'Jenis peran tidak valid',
     })
@@ -102,12 +102,12 @@ export class BuatPenggunaDtoClass {
 
   @ApiProperty({
     description: 'Peran pengguna',
-    enum: ['penulis', 'editor', 'percetakan', 'admin'],
+    enum: ['penulis', 'editor', 'admin'],
     default: 'penulis',
     example: 'penulis',
     type: String,
   })
-  jenisPeran!: 'penulis' | 'editor' | 'percetakan' | 'admin';
+  jenisPeran!: 'penulis' | 'editor' | 'admin';
 
   @ApiProperty({
     description: 'Status aktif pengguna',

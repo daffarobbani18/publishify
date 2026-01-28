@@ -4,7 +4,7 @@ import api, { sanitizeParams } from "./client";
 // TYPES
 // ================================
 
-export type JenisPeran = "penulis" | "editor" | "percetakan" | "admin";
+export type JenisPeran = "penulis" | "editor" | "admin";
 
 export interface PeranPengguna {
   jenisPeran: JenisPeran;
@@ -74,7 +74,9 @@ export const penggunaApi = {
   /**
    * GET /pengguna - Ambil semua pengguna (admin only)
    */
-  async ambilSemuaPengguna(params?: FilterPenggunaParams): Promise<ResponseSukses<Pengguna[]>> {
+  async ambilSemuaPengguna(
+    params?: FilterPenggunaParams,
+  ): Promise<ResponseSukses<Pengguna[]>> {
     const { data } = await api.get<ResponseSukses<Pengguna[]>>("/pengguna", {
       params: sanitizeParams(params),
     });
@@ -92,8 +94,14 @@ export const penggunaApi = {
   /**
    * PUT /pengguna/:id/status - Update status aktif pengguna
    */
-  async updateStatusPengguna(id: string, aktif: boolean): Promise<ResponseSukses<Pengguna>> {
-    const { data } = await api.put<ResponseSukses<Pengguna>>(`/pengguna/${id}/status`, { aktif });
+  async updateStatusPengguna(
+    id: string,
+    aktif: boolean,
+  ): Promise<ResponseSukses<Pengguna>> {
+    const { data } = await api.put<ResponseSukses<Pengguna>>(
+      `/pengguna/${id}/status`,
+      { aktif },
+    );
     return data;
   },
 

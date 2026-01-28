@@ -16,65 +16,35 @@ export default function LoginPage() {
     kataSandi: "",
   });
 
-  // Mode Development
-  const isDevelopment = process.env.NODE_ENV === 'development';
-
-  // Auto-fill functions untuk mode development
-  const autoFillAdmin = () => {
-    setFormData({ email: "admin@publishify.com", kataSandi: "Password123!" });
-    toast.success("Form diisi: Admin");
-  };
-
-  const autoFillEditor = () => {
-    setFormData({ email: "editor@publishify.com", kataSandi: "Password123!" });
-    toast.success("Form diisi: Editor");
-  };
-
-  const autoFillPenulis = () => {
-    setFormData({ email: "penulis@publishify.com", kataSandi: "Password123!" });
-    toast.success("Form diisi: Penulis Basic");
-  };
-
-  const autoFillPercetakan = () => {
-    setFormData({ email: "percetakan@publishify.com", kataSandi: "Password123!" });
-    toast.success("Form diisi: Percetakan");
-  };
-
-  const autoFillWriter = () => {
-    setFormData({ email: "ahmad.surya@publishify.com", kataSandi: "Password123!" });
-    toast.success("Form diisi: Writer Full Data");
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
       await login(formData.email, formData.kataSandi);
-      
+
       // Get user data from store after login
       const pengguna = useAuthStore.getState().pengguna;
       const accessToken = useAuthStore.getState().accessToken;
-      
+
       // Debug logging
       console.log("🔐 Login berhasil:", {
         email: pengguna?.email,
         peran: pengguna?.peran,
         tokenTersimpan: accessToken ? "✅ Ya" : "❌ Tidak",
-        localStorageToken: localStorage.getItem("accessToken") ? "✅ Ya" : "❌ Tidak",
+        localStorageToken: localStorage.getItem("accessToken")
+          ? "✅ Ya"
+          : "❌ Tidak",
       });
-      
+
       toast.success("Login berhasil. Selamat datang kembali!");
-      
+
       // Tunggu sebentar untuk memastikan cookie tersimpan
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Redirect based on user role (priority: admin > percetakan > editor > penulis)
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Redirect based on user role (priority: admin > editor > penulis)
       if (pengguna?.peran?.includes("admin")) {
         console.log("↪️ Redirect ke: /admin");
         router.push("/admin");
-      } else if (pengguna?.peran?.includes("percetakan")) {
-        console.log("↪️ Redirect ke: /percetakan");
-        router.push("/percetakan");
       } else if (pengguna?.peran?.includes("editor")) {
         console.log("↪️ Redirect ke: /editor");
         router.push("/editor");
@@ -97,12 +67,13 @@ export default function LoginPage() {
   const handleGoogleSignIn = () => {
     // Redirect ke backend OAuth endpoint
     // Gunakan NEXT_PUBLIC_BACKEND_URL (tanpa /api) untuk menghindari double /api
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
     // Pastikan tidak ada double slash
-    const cleanBackendUrl = backendUrl.replace(/\/+$/, '');
+    const cleanBackendUrl = backendUrl.replace(/\/+$/, "");
     const redirectUrl = `${cleanBackendUrl}/api/auth/google`;
-    
-    console.log('🔐 Google OAuth Redirect:', redirectUrl);
+
+    console.log("🔐 Google OAuth Redirect:", redirectUrl);
     window.location.href = redirectUrl;
   };
 
@@ -124,60 +95,6 @@ export default function LoginPage() {
 
       {/* Right Side - Login Form */}
       <div className="bg-white rounded-2xl shadow-xl p-8 lg:p-12 space-y-6">
-        {/* Mode Development Banner */}
-        {isDevelopment && (
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-dashed border-purple-300 rounded-xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <svg className="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-              </svg>
-              <span className="text-sm font-semibold text-purple-900">
-                Mode Development - Auto Fill (Seed Account):
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={autoFillAdmin}
-                className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={autoFillEditor}
-                className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm"
-              >
-                Editor
-              </button>
-              <button
-                type="button"
-                onClick={autoFillPenulis}
-                className="px-3 py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm"
-              >
-                Penulis
-              </button>
-              <button
-                type="button"
-                onClick={autoFillPercetakan}
-                className="px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm"
-              >
-                Percetakan
-              </button>
-              <button
-                type="button"
-                onClick={autoFillWriter}
-                className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-lg transition-colors shadow-sm col-span-2 sm:col-span-1"
-              >
-                Writer Full
-              </button>
-            </div>
-            <p className="text-xs text-purple-700 mt-2">
-              Klik untuk mengisi form otomatis, lalu klik Login
-            </p>
-          </div>
-        )}
-
         {/* User Avatar Icon */}
         <div className="flex justify-center mb-6">
           <div className="w-24 h-24 bg-[#14b8a6] rounded-full flex items-center justify-center">
@@ -233,7 +150,9 @@ export default function LoginPage() {
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500">atau login dengan email</span>
+            <span className="px-4 bg-white text-gray-500">
+              atau login dengan email
+            </span>
           </div>
         </div>
 
@@ -254,7 +173,9 @@ export default function LoginPage() {
               type="email"
               placeholder="Email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, email: e.target.value })
+              }
               className="w-full pl-16 pr-4 py-4 border-2 border-gray-300 rounded-lg focus:border-[#14b8a6] focus:outline-none transition-colors text-gray-700"
               required
             />
@@ -281,7 +202,9 @@ export default function LoginPage() {
               type={showPassword ? "text" : "password"}
               placeholder="Password"
               value={formData.kataSandi}
-              onChange={(e) => setFormData({ ...formData, kataSandi: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, kataSandi: e.target.value })
+              }
               className="w-full pl-16 pr-14 py-4 border-2 border-gray-300 rounded-lg focus:border-[#14b8a6] focus:outline-none transition-colors text-gray-700"
               required
             />

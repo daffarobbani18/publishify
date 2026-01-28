@@ -19,13 +19,21 @@ import { PrismaModule } from '@/prisma/prisma.module';
         const allowedMimes = [
           // Documents
           'application/pdf',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'application/msword', // .doc
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+          'application/vnd.ms-excel', // .xls
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+          'application/rtf', // .rtf
+          'text/plain', // .txt
+          'text/rtf',
           // Images
           'image/jpeg',
           'image/png',
           'image/webp',
           'image/gif',
+          'image/svg+xml',
+          // Allow octet-stream for some browsers that don't detect mime correctly
+          'application/octet-stream',
         ];
 
         if (allowedMimes.includes(file.mimetype)) {
@@ -33,7 +41,7 @@ import { PrismaModule } from '@/prisma/prisma.module';
         } else {
           callback(
             new Error(
-              'Tipe file tidak diperbolehkan. Hanya PDF, DOCX, XLSX, dan gambar (JPEG, PNG, WebP, GIF)',
+              `Tipe file tidak diperbolehkan (${file.mimetype}). Hanya PDF, DOC, DOCX, XLSX, TXT, dan gambar (JPEG, PNG, WebP, GIF)`,
             ),
             false,
           );

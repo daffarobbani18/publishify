@@ -68,40 +68,41 @@ export default function DashboardPage() {
       let isPenulis = false;
       let isEditor = false;
       let isAdmin = false;
-      let isPercetakan = false;
 
       // Cek dari peran (format array string dari backend login)
       if (pengguna.peran) {
         isPenulis = pengguna.peran.includes("penulis");
         isEditor = pengguna.peran.includes("editor");
         isAdmin = pengguna.peran.includes("admin");
-        isPercetakan = pengguna.peran.includes("percetakan");
       }
-      
+
       // Cek dari peranPengguna (format lengkap)
       if (pengguna.peranPengguna) {
-        isPenulis = isPenulis || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "penulis" && peran.aktif
-        );
-        isEditor = isEditor || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "editor" && peran.aktif
-        );
-        isAdmin = isAdmin || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "admin" && peran.aktif
-        );
-        isPercetakan = isPercetakan || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "percetakan" && peran.aktif
-        );
+        isPenulis =
+          isPenulis ||
+          pengguna.peranPengguna.some(
+            (peran) => peran.jenisPeran === "penulis" && peran.aktif,
+          );
+        isEditor =
+          isEditor ||
+          pengguna.peranPengguna.some(
+            (peran) => peran.jenisPeran === "editor" && peran.aktif,
+          );
+        isAdmin =
+          isAdmin ||
+          pengguna.peranPengguna.some(
+            (peran) => peran.jenisPeran === "admin" && peran.aktif,
+          );
       }
-      
-      // Priority redirect: Admin > Editor > Percetakan > Penulis
+
+      // Priority redirect: Admin > Editor > Penulis
       if (isAdmin) {
         console.log("Redirecting admin to /admin");
         setIsRedirecting(true);
         router.replace("/admin");
         return;
       }
-      
+
       // Jika hanya editor (bukan penulis), redirect ke dashboard editor
       if (isEditor && !isPenulis) {
         console.log("Redirecting editor to /penulis/editor");
@@ -109,22 +110,14 @@ export default function DashboardPage() {
         router.replace("/penulis/editor");
         return;
       }
-
-      // Jika hanya percetakan
-      if (isPercetakan && !isPenulis) {
-        console.log("Redirecting percetakan to /penulis/percetakan");
-        setIsRedirecting(true);
-        router.replace("/penulis/percetakan");
-        return;
-      }
     }
   }, [pengguna, router]);
 
   // Fetch statistik dari API
   useEffect(() => {
-    // Jangan fetch jika sedang redirect
-    if (isRedirecting) return;
-    
+    // Jangan fetch jika sedang redirect atau belum ada pengguna (token belum ready)
+    if (isRedirecting || !pengguna) return;
+
     const fetchStatistik = async () => {
       setLoadingStats(true);
       try {
@@ -132,14 +125,17 @@ export default function DashboardPage() {
         setStatistik(res.data);
       } catch (e: any) {
         console.error("Gagal memuat statistik:", e);
-        toast.error("Gagal memuat statistik");
+        // Jangan tampilkan toast untuk error 401 karena mungkin token belum ready
+        if (e?.response?.status !== 401) {
+          toast.error("Gagal memuat statistik");
+        }
       } finally {
         setLoadingStats(false);
       }
     };
 
     fetchStatistik();
-  }, [isRedirecting]);
+  }, [isRedirecting, pengguna]);
 
   // Get current year
   const currentYear = new Date().getFullYear();
@@ -270,7 +266,9 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#14b8a6] mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Mengarahkan ke Dashboard Editor...</p>
+          <p className="text-gray-600 font-medium">
+            Mengarahkan ke Dashboard Editor...
+          </p>
         </div>
       </div>
     );
@@ -318,7 +316,10 @@ export default function DashboardPage() {
           {loadingStats ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 animate-pulse">
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className="bg-white rounded-lg p-4 border border-slate-200">
+                <div
+                  key={i}
+                  className="bg-white rounded-lg p-4 border border-slate-200"
+                >
                   <div className="h-8 w-8 bg-slate-200 rounded-lg mb-2" />
                   <div className="h-6 bg-slate-200 rounded mb-1" />
                   <div className="h-3 bg-slate-200 rounded w-2/3" />
@@ -339,7 +340,9 @@ export default function DashboardPage() {
                     className="bg-white rounded-lg p-3 sm:p-4 border border-slate-200 hover:shadow-md transition-all cursor-pointer group"
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 sm:w-12 sm:h-12 ${stat.bgColor} rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}>
+                      <div
+                        className={`w-10 h-10 sm:w-12 sm:h-12 ${stat.bgColor} rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform`}
+                      >
                         <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -379,7 +382,9 @@ export default function DashboardPage() {
                     <div className="text-2xl sm:text-3xl font-bold mb-1">
                       {statistik?.perStatus.perlu_revisi || 0}
                     </div>
-                    <div className="text-sm opacity-90">Naskah perlu verifikasi ulang</div>
+                    <div className="text-sm opacity-90">
+                      Naskah perlu verifikasi ulang
+                    </div>
                   </div>
                   <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
                     <FilePlus className="w-5 h-5" />
@@ -415,15 +420,23 @@ export default function DashboardPage() {
                   Statistik Naskah per Kategori
                 </h3>
               </div>
-              
+
               {/* Simple Bar Chart Placeholder */}
               <div className="h-48 sm:h-64 flex items-end justify-between gap-2 sm:gap-4 px-2 sm:px-4">
                 {statistik?.perKategori?.slice(0, 6).map((item, idx) => {
-                  const maxValue = Math.max(...(statistik.perKategori?.map(i => i.total) || [1]));
+                  const maxValue = Math.max(
+                    ...(statistik.perKategori?.map((i) => i.total) || [1]),
+                  );
                   const height = (item.total / maxValue) * 100;
                   return (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-2">
-                      <div className="w-full flex items-end justify-center" style={{ height: "180px" }}>
+                    <div
+                      key={idx}
+                      className="flex-1 flex flex-col items-center gap-2"
+                    >
+                      <div
+                        className="w-full flex items-end justify-center"
+                        style={{ height: "180px" }}
+                      >
                         <div
                           className="w-full max-w-[40px] bg-gradient-to-t from-blue-500 to-teal-500 rounded-t-lg transition-all hover:opacity-80"
                           style={{
@@ -438,7 +451,8 @@ export default function DashboardPage() {
                     </div>
                   );
                 })}
-                {(!statistik?.perKategori || statistik.perKategori.length === 0) && (
+                {(!statistik?.perKategori ||
+                  statistik.perKategori.length === 0) && (
                   <div className="w-full h-full flex items-center justify-center text-slate-400">
                     <p className="text-sm">Belum ada data kategori</p>
                   </div>
@@ -459,11 +473,15 @@ export default function DashboardPage() {
               <h3 className="text-sm sm:text-base font-semibold text-slate-900 mb-4">
                 Aktivitas Terbaru
               </h3>
-              
-              {statistik?.naskahTerbaru && statistik.naskahTerbaru.length > 0 ? (
+
+              {statistik?.naskahTerbaru &&
+              statistik.naskahTerbaru.length > 0 ? (
                 <div className="space-y-3">
                   {statistik.naskahTerbaru.slice(0, 5).map((naskah, idx) => (
-                    <div key={naskah.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0">
+                    <div
+                      key={naskah.id}
+                      className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0"
+                    >
                       <div className="flex-shrink-0">
                         <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
                           <FileText className="w-4 h-4 text-blue-600" />
@@ -474,7 +492,11 @@ export default function DashboardPage() {
                           {naskah.judul}
                         </p>
                         <p className="text-xs text-slate-500 capitalize">
-                          {naskah.status.replace(/_/g, " ")} • {new Date(naskah.dibuatPada).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
+                          {naskah.status.replace(/_/g, " ")} •{" "}
+                          {new Date(naskah.dibuatPada).toLocaleDateString(
+                            "id-ID",
+                            { day: "numeric", month: "short" },
+                          )}
                         </p>
                       </div>
                     </div>
@@ -485,7 +507,9 @@ export default function DashboardPage() {
                   <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Clock className="w-6 h-6 text-slate-400" />
                   </div>
-                  <p className="text-xs sm:text-sm text-slate-500">Belum ada aktivitas</p>
+                  <p className="text-xs sm:text-sm text-slate-500">
+                    Belum ada aktivitas
+                  </p>
                 </div>
               )}
             </motion.div>
@@ -560,8 +584,6 @@ export default function DashboardPage() {
             </motion.button>
           </div>
         </motion.div>
-
-
       </div>
     </div>
   );

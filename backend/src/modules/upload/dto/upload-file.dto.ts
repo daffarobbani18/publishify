@@ -80,11 +80,13 @@ export const UPLOAD_CONFIG: Record<
   [TipeFile.NASKAH]: {
     mimeTypes: [
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword', // .doc
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'text/plain', // .txt - untuk mode tulis langsung
     ] as const,
-    extensions: ['.pdf', '.docx'] as const,
+    extensions: ['.pdf', '.doc', '.docx', '.txt'] as const,
     maxSize: 50 * 1024 * 1024, // 50MB
-    description: 'File naskah (PDF atau DOCX)',
+    description: 'File naskah (PDF, DOC, DOCX, atau TXT)',
   },
   [TipeFile.SAMPUL]: {
     mimeTypes: ['image/jpeg', 'image/png', 'image/webp'] as const,
@@ -103,9 +105,12 @@ export const UPLOAD_CONFIG: Record<
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'image/jpeg',
+      'image/png',
+      'image/webp',
     ] as const,
-    extensions: ['.pdf', '.docx', '.xlsx'] as const,
+    extensions: ['.pdf', '.docx', '.xlsx', '.jpg', '.jpeg', '.png', '.webp'] as const,
     maxSize: 20 * 1024 * 1024, // 20MB
-    description: 'Dokumen umum (PDF, DOCX, atau XLSX)',
+    description: 'Dokumen pendukung (PDF, DOCX, XLSX, atau Gambar)',
   },
 };

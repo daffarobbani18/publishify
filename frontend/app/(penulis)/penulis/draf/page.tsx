@@ -1,50 +1,49 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
-  AlertCircle,
+import {
+  FileText,
   Eye,
   Edit3,
   Trash2,
   Plus,
   Search,
   BookOpen,
-  Calendar
+  Calendar,
+  Send,
+  FileCheck,
+  Clock,
 } from "lucide-react";
 import { naskahApi, type Naskah } from "@/lib/api/naskah";
+import { StatusTrackerMini } from "@/components/naskah/status-tracker";
+import {
+  STATUS_NASKAH,
+  TAHAP_PENERBITAN,
+  type StatusNaskah,
+} from "@/lib/constants/status-naskah";
 
-type TabKey = "semua" | "in_review" | "revision_needed" | "rejected";
-
-// Normalisasi status agar kompatibel dengan backend (dalam_review, perlu_revisi, ditolak)
-const normalisasiStatus = (s: string): "draft" | "in_review" | "revision_needed" | "rejected" | string => {
-  if (!s) return s;
-  const v = s.toLowerCase();
-  if (v === "dalam_review") return "in_review";
-  if (v === "perlu_revisi") return "revision_needed";
-  if (v === "ditolak") return "rejected";
-  return v;
-};
-
-// Status configuration untuk badge
-const labelStatus: Record<string, { label: string; color: string; bg: string }> = {
-  draft: { label: "Draft", color: "text-slate-700", bg: "bg-slate-100" },
-  in_review: { label: "Dalam Review", color: "text-amber-700", bg: "bg-amber-100" },
-  revision_needed: { label: "Perlu Revisi", color: "text-orange-700", bg: "bg-orange-100" },
-  rejected: { label: "Ditolak", color: "text-red-700", bg: "bg-red-100" },
-};
+// Tab keys sesuai dengan 5 tahap penerbitan + semua
+type TabKey =
+  | "semua"
+  | "diajukan"
+  | "dalam_review"
+  | "dalam_editing"
+  | "siap_terbit"
+  | "diterbitkan";
 
 function formatTanggal(iso?: string) {
   if (!iso) return "-";
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
   } catch {
     return iso;
   }
@@ -55,6 +54,7 @@ export default function DrafPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("semua");
   const [allDrafts, setAllDrafts] = useState<Naskah[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Get greeting based on time
   const getGreeting = () => {
@@ -69,7 +69,9 @@ export default function DrafPage() {
     setLoading(true);
     try {
       const res = await naskahApi.ambilNaskahSaya();
-      const list = [...(res.data || [])].sort((a, b) => (a.dibuatPada < b.dibuatPada ? 1 : -1));
+      const list = [...(res.data || [])].sort((a, b) =>
+        a.dibuatPada < b.dibuatPada ? 1 : -1,
+      );
       setAllDrafts(list);
     } catch (e: any) {
       toast.error(e?.response?.data?.pesan || "Gagal memuat draf");
@@ -82,23 +84,43 @@ export default function DrafPage() {
     fetchData();
   }, []);
 
+  // Filter naskah berdasarkan tab
   const filteredDrafts = useMemo(() => {
     if (activeTab === "semua") return allDrafts;
-    
-    // Filter khusus untuk "revision_needed" - cek rekomendasi dari review
-    if (activeTab === "revision_needed") {
-      return allDrafts.filter((n) => {
-        // Cek apakah ada review dengan rekomendasi 'revisi'
-        const hasRevisionRecommendation = n.review?.some((r) => r.rekomendasi === "revisi");
-        return hasRevisionRecommendation || normalisasiStatus(n.status) === "revision_needed";
-      });
-    }
-    
-    return allDrafts.filter((n) => normalisasiStatus(n.status) === activeTab);
+    return allDrafts.filter((n) => n.status === activeTab);
   }, [allDrafts, activeTab]);
 
+  // Enhanced filtered drafts dengan search
+  const filteredDraftsEnhanced = useMemo(() => {
+    let filtered = filteredDrafts;
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (n) =>
+          n.judul?.toLowerCase().includes(query) ||
+          n.sinopsis?.toLowerCase().includes(query),
+      );
+    }
+    return filtered;
+  }, [filteredDrafts, searchQuery]);
+
+  // Stats untuk tabs - 5 tahap penerbitan
+  const tabStats = useMemo(
+    () => ({
+      semua: allDrafts.length,
+      diajukan: allDrafts.filter((n) => n.status === "diajukan").length,
+      dalam_review: allDrafts.filter((n) => n.status === "dalam_review").length,
+      dalam_editing: allDrafts.filter((n) => n.status === "dalam_editing")
+        .length,
+      siap_terbit: allDrafts.filter((n) => n.status === "siap_terbit").length,
+      diterbitkan: allDrafts.filter((n) => n.status === "diterbitkan").length,
+    }),
+    [allDrafts],
+  );
+
   const onLihatDetail = (id: string) => router.push(`/penulis/draf/${id}`);
-  const onEdit = (id: string) => router.push(`/penulis/draf/edit/${id}`);
+  // Edit naskah - redirect ke halaman detail yang sudah ada form EditorRevisi
+  const onEdit = (id: string) => router.push(`/penulis/draf/${id}`);
   const onHapus = async (id: string) => {
     const konfirmasi = window.confirm("Yakin ingin menghapus draf ini?");
     if (!konfirmasi) return;
@@ -110,35 +132,6 @@ export default function DrafPage() {
       toast.error(e?.response?.data?.pesan || "Gagal menghapus draf");
     }
   };
-
-  const [searchQuery, setSearchQuery] = useState("");
-
-  // Enhanced filtered drafts dengan search
-  const filteredDraftsEnhanced = useMemo(() => {
-    let filtered = filteredDrafts;
-    
-    // Filter by search
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter((n) => 
-        n.judul?.toLowerCase().includes(query) || 
-        n.sinopsis?.toLowerCase().includes(query)
-      );
-    }
-
-    return filtered;
-  }, [filteredDrafts, searchQuery]);
-
-  // Stats untuk tabs
-  const tabStats = useMemo(() => ({
-    semua: allDrafts.length,
-    in_review: allDrafts.filter((n) => normalisasiStatus(n.status) === "in_review").length,
-    revision_needed: allDrafts.filter((n) => {
-      const hasRevisionRecommendation = n.review?.some((r) => r.rekomendasi === "revisi");
-      return hasRevisionRecommendation || normalisasiStatus(n.status) === "revision_needed";
-    }).length,
-    rejected: allDrafts.filter((n) => normalisasiStatus(n.status) === "rejected").length,
-  }), [allDrafts]);
 
   return (
     <div className="min-h-screen w-full bg-transparent">
@@ -153,7 +146,7 @@ export default function DrafPage() {
           {/* Decorative circles */}
           <div className="absolute top-0 right-0 w-32 sm:w-48 h-32 sm:h-48 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/3" />
           <div className="absolute bottom-0 left-0 w-24 sm:w-32 h-24 sm:h-32 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/3" />
-          
+
           <div className="relative flex items-center justify-between">
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white tracking-tight mb-2">
@@ -183,15 +176,33 @@ export default function DrafPage() {
           />
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - 6 Tab untuk status */}
         <div className="mb-6 sm:mb-8">
-          <div className="grid grid-cols-4 gap-1 sm:gap-2 border-b border-slate-200">
-            {([
+          <div className="grid grid-cols-6 gap-1 sm:gap-2 border-b border-slate-200 overflow-x-auto">
+            {[
               { key: "semua" as TabKey, label: "Semua", icon: BookOpen },
-              { key: "in_review" as TabKey, label: "Review", icon: Clock },
-              { key: "revision_needed" as TabKey, label: "Revisi", icon: AlertCircle },
-              { key: "rejected" as TabKey, label: "Ditolak", icon: XCircle },
-            ]).map((tab) => {
+              { key: "diajukan" as TabKey, label: "Diajukan", icon: Send },
+              {
+                key: "dalam_review" as TabKey,
+                label: "Review",
+                icon: STATUS_NASKAH.dalam_review.icon,
+              },
+              {
+                key: "dalam_editing" as TabKey,
+                label: "Editing",
+                icon: STATUS_NASKAH.dalam_editing.icon,
+              },
+              {
+                key: "siap_terbit" as TabKey,
+                label: "Siap Terbit",
+                icon: FileCheck,
+              },
+              {
+                key: "diterbitkan" as TabKey,
+                label: "Terbit",
+                icon: STATUS_NASKAH.diterbitkan.icon,
+              },
+            ].map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.key;
               const count = tabStats[tab.key];
@@ -203,22 +214,26 @@ export default function DrafPage() {
                   onClick={() => setActiveTab(tab.key)}
                   className={`
                     relative px-2 sm:px-4 md:px-6 py-3 sm:py-4 font-medium text-xs sm:text-sm transition-all duration-200
-                    ${isActive 
-                      ? 'text-teal-600' 
-                      : 'text-slate-600 hover:text-slate-900'
+                    ${
+                      isActive
+                        ? "text-teal-600"
+                        : "text-slate-600 hover:text-slate-900"
                     }
                   `}
                 >
                   <div className="flex items-center justify-center gap-1.5 sm:gap-2">
                     <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
                     <span className="truncate">{tab.label}</span>
-                    <span className={`
+                    <span
+                      className={`
                       px-1.5 sm:px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0
-                      ${isActive 
-                        ? 'bg-teal-100 text-teal-700' 
-                        : 'bg-slate-100 text-slate-600'
+                      ${
+                        isActive
+                          ? "bg-teal-100 text-teal-700"
+                          : "bg-slate-100 text-slate-600"
                       }
-                    `}>
+                    `}
+                    >
                       {count}
                     </span>
                   </div>
@@ -226,7 +241,11 @@ export default function DrafPage() {
                     <motion.div
                       layoutId="activeTab"
                       className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-teal-600 to-cyan-600"
-                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 30,
+                      }}
                     />
                   )}
                 </motion.button>
@@ -244,7 +263,7 @@ export default function DrafPage() {
               ))}
             </div>
           ) : filteredDraftsEnhanced.length === 0 ? (
-            <EmptyState 
+            <EmptyState
               activeTab={activeTab}
               searchQuery={searchQuery}
               onReset={() => {
@@ -255,7 +274,7 @@ export default function DrafPage() {
             />
           ) : (
             <AnimatePresence mode="popLayout">
-              <motion.div 
+              <motion.div
                 layout
                 className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6"
               >
@@ -300,14 +319,14 @@ function SkeletonCard() {
 }
 
 // Empty State Component
-function EmptyState({ 
-  activeTab, 
-  searchQuery, 
-  onReset, 
-  onCreateNew 
-}: { 
-  activeTab: TabKey; 
-  searchQuery: string; 
+function EmptyState({
+  activeTab,
+  searchQuery,
+  onReset,
+  onCreateNew,
+}: {
+  activeTab: TabKey;
+  searchQuery: string;
   onReset: () => void;
   onCreateNew: () => void;
 }) {
@@ -326,10 +345,9 @@ function EmptyState({
         {hasFilters ? "Tidak ada naskah ditemukan" : "Belum ada naskah"}
       </h3>
       <p className="text-sm sm:text-base text-slate-600 text-center max-w-md mb-6 sm:mb-8 px-4">
-        {hasFilters 
+        {hasFilters
           ? "Coba ubah filter atau kata kunci pencarian Anda"
-          : "Mulai perjalanan menulis Anda dengan membuat naskah pertama"
-        }
+          : "Mulai perjalanan menulis Anda dengan membuat naskah pertama"}
       </p>
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto px-4 sm:px-0">
         {hasFilters && (
@@ -357,21 +375,20 @@ function EmptyState({
 }
 
 // Naskah Card Component
-function NaskahCard({ 
-  naskah, 
+function NaskahCard({
+  naskah,
   index,
-  onLihatDetail, 
-  onEdit, 
-  onHapus 
-}: { 
-  naskah: Naskah; 
+  onLihatDetail,
+  onEdit,
+  onHapus,
+}: {
+  naskah: Naskah;
   index: number;
   onLihatDetail: (id: string) => void;
   onEdit: (id: string) => void;
   onHapus: (id: string) => void;
 }) {
-  const status = normalisasiStatus(naskah.status || "draft");
-  const st = labelStatus[status] || { label: naskah.status, color: "text-gray-700", bg: "bg-gray-100" };
+  const status = (naskah.status || "draft") as StatusNaskah;
 
   return (
     <motion.div
@@ -384,11 +401,9 @@ function NaskahCard({
       className="group bg-white rounded-xl sm:rounded-2xl border border-slate-200 hover:border-teal-200 hover:shadow-xl hover:shadow-teal-500/10 transition-all duration-300 overflow-hidden w-full"
     >
       <div className="p-4 sm:p-6">
-        {/* Header with Status Badge */}
+        {/* Header with Status Badge - using StatusTrackerMini */}
         <div className="flex items-start justify-between mb-3 sm:mb-4 gap-2">
-          <span className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-semibold ${st.bg} ${st.color} flex-shrink-0`}>
-            {st.label}
-          </span>
+          <StatusTrackerMini statusSaatIni={status} />
           {naskah.review && naskah.review.length > 0 && (
             <div className="flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-lg flex-shrink-0">
               <Eye className="w-3 h-3" />
@@ -423,26 +438,25 @@ function NaskahCard({
 
         {/* Actions */}
         <div className="flex gap-2">
-          {status === "in_review" ? (
+          {status === "dalam_review" ? (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => onLihatDetail(naskah.id)}
-              disabled
-              className="flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-slate-100 text-slate-400 text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl cursor-not-allowed min-w-0"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl hover:shadow-lg hover:shadow-blue-500/30 transition-all min-w-0"
             >
-              <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-              <span className="truncate">Dalam Review</span>
+              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">Lihat Detail</span>
             </motion.button>
-          ) : status === "revision_needed" ? (
+          ) : status === "dalam_editing" ? (
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              onClick={() => onEdit(naskah.id)}
-              className="flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-orange-600 to-amber-600 text-white text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl hover:shadow-lg hover:shadow-orange-500/30 transition-all min-w-0"
+              onClick={() => onLihatDetail(naskah.id)}
+              className="flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl hover:shadow-lg hover:shadow-purple-500/30 transition-all min-w-0"
             >
-              <Edit3 className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-              <span className="truncate">Lihat Feedback</span>
+              <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">Lihat Detail</span>
             </motion.button>
           ) : (
             <motion.button
@@ -452,11 +466,11 @@ function NaskahCard({
               className="flex-1 inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-xs sm:text-sm font-medium rounded-lg sm:rounded-xl hover:shadow-lg hover:shadow-teal-500/30 transition-all min-w-0"
             >
               <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-              <span className="truncate">Lihat</span>
+              <span className="truncate">Lihat Detail</span>
             </motion.button>
           )}
-          
-          {status !== "in_review" && (
+
+          {status !== "dalam_review" && (
             <>
               <motion.button
                 whileHover={{ scale: 1.02 }}

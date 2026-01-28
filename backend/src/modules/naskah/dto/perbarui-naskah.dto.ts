@@ -3,6 +3,23 @@ import { ApiProperty } from '@nestjs/swagger';
 import { FormatBukuEnum } from './buat-naskah.dto';
 
 /**
+ * Custom validator untuk URL atau path relatif
+ * Menerima URL lengkap (http://, https://) atau path relatif (/uploads/...)
+ */
+const urlAtauPath = (fieldName: string) =>
+  z
+    .string()
+    .refine(
+      (val) => {
+        // Terima URL lengkap atau path relatif yang dimulai dengan /
+        return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/');
+      },
+      { message: `${fieldName} harus berupa URL valid atau path yang dimulai dengan /` },
+    )
+    .optional()
+    .nullable();
+
+/**
  * Schema Zod untuk update naskah
  * Semua field optional (partial update)
  */
@@ -45,33 +62,27 @@ export const PerbaruiNaskahSchema = z.object({
     .optional()
     .nullable(),
 
-  urlSampul: z
-    .string()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        // Allow relative paths (/uploads/...) or full URLs (http://...)
-        return val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://');
-      },
-      { message: 'URL sampul harus berupa path relatif atau URL lengkap' }
-    )
-    .optional()
-    .nullable(),
+  urlSampul: urlAtauPath('URL sampul'),
 
-  urlFile: z
-    .string()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        // Allow relative paths (/uploads/...) or full URLs (http://...)
-        return val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://');
-      },
-      { message: 'URL file harus berupa path relatif atau URL lengkap' }
-    )
-    .optional()
-    .nullable(),
+  urlFile: urlAtauPath('URL file'),
 
   publik: z.boolean().optional(),
+
+  // ISBN untuk naskah yang siap terbit
+  isbn: z
+    .string()
+    .min(10, 'ISBN minimal 10 karakter')
+    .max(17, 'ISBN maksimal 17 karakter')
+    .optional()
+    .nullable(),
+
+  urlSuratPerjanjian: urlAtauPath('URL surat perjanjian'),
+
+  urlSuratKeaslian: urlAtauPath('URL surat keaslian'),
+
+  urlProposalNaskah: urlAtauPath('URL proposal naskah'),
+
+  urlBuktiTransfer: urlAtauPath('URL bukti transfer'),
 });
 
 /**
@@ -178,4 +189,40 @@ export class PerbaruiNaskahDtoClass {
     type: Boolean,
   })
   publik?: boolean;
+
+  @ApiProperty({
+    description: 'Nomor ISBN naskah',
+    example: '978-602-1234-56-7',
+    required: false,
+    type: String,
+  })
+  isbn?: string;
+
+  @ApiProperty({
+    description: 'URL surat perjanjian',
+    required: false,
+    type: String,
+  })
+  urlSuratPerjanjian?: string;
+
+  @ApiProperty({
+    description: 'URL surat keaslian karya',
+    required: false,
+    type: String,
+  })
+  urlSuratKeaslian?: string;
+
+  @ApiProperty({
+    description: 'URL proposal naskah',
+    required: false,
+    type: String,
+  })
+  urlProposalNaskah?: string;
+
+  @ApiProperty({
+    description: 'URL bukti transfer',
+    required: false,
+    type: String,
+  })
+  urlBuktiTransfer?: string;
 }

@@ -3,74 +3,68 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  
+
   // Get token from cookie
   const token = request.cookies.get("token")?.value;
-  
+
   // Public routes yang tidak perlu authentication
-  const publicRoutes = ["/", "/login", "/register", "/verifikasi-email", "/auth/callback", "/download-app"];
-  const isPublicRoute = publicRoutes.some(route => pathname === route || pathname.startsWith("/api/"));
-  
-  // Allow access to public files (downloads, images, etc)
-  const isPublicFile = pathname.startsWith("/downloads/") || 
-                       pathname.startsWith("/_next/") || 
-                       pathname.startsWith("/images/") ||
-                       pathname.startsWith("/icons/");
-  
-  // Jika tidak ada token dan bukan public route/file, redirect ke login
-  if (!token && !isPublicRoute && !isPublicFile) {
+  const publicRoutes = [
+    "/",
+    "/login",
+    "/register",
+    "/verifikasi-email",
+    "/auth/callback",
+  ];
+  const isPublicRoute = publicRoutes.some(
+    (route) => pathname === route || pathname.startsWith("/api/"),
+  );
+
+  // Jika tidak ada token dan bukan public route, redirect ke login
+  if (!token && !isPublicRoute) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
-  
+
   // Jika ada token, decode untuk cek role (simplified - di production gunakan JWT verify)
   if (token) {
     try {
       // Decode payload dari JWT (bagian tengah)
       const payload = JSON.parse(
-        Buffer.from(token.split(".")[1], "base64").toString()
+        Buffer.from(token.split(".")[1], "base64").toString(),
       );
-      
+
       const userRoles = payload.peran || [];
-      
+
       // Route protection berdasarkan role
       if (pathname.startsWith("/penulis") && !userRoles.includes("penulis")) {
         return NextResponse.redirect(new URL("/login", request.url));
       }
-      
+
       if (pathname.startsWith("/editor") && !userRoles.includes("editor")) {
         return NextResponse.redirect(new URL("/login", request.url));
       }
-      
-      if (pathname.startsWith("/percetakan") && !userRoles.includes("percetakan")) {
-        return NextResponse.redirect(new URL("/login", request.url));
-      }
-      
+
       if (pathname.startsWith("/admin") && !userRoles.includes("admin")) {
         return NextResponse.redirect(new URL("/login", request.url));
       }
-      
+
       // Redirect dari /dashboard/* ke role-specific route
       if (pathname.startsWith("/dashboard")) {
         // Tentukan redirect berdasarkan role utama
         if (userRoles.includes("admin")) {
           return NextResponse.redirect(new URL("/admin", request.url));
-        } else if (userRoles.includes("percetakan")) {
-          return NextResponse.redirect(new URL("/percetakan", request.url));
         } else if (userRoles.includes("editor")) {
           return NextResponse.redirect(new URL("/editor", request.url));
         } else if (userRoles.includes("penulis")) {
           return NextResponse.redirect(new URL("/penulis", request.url));
         }
       }
-      
+
       // Redirect dari root ke dashboard yang sesuai jika sudah login
       if (pathname === "/" && token) {
         if (userRoles.includes("admin")) {
           return NextResponse.redirect(new URL("/admin", request.url));
-        } else if (userRoles.includes("percetakan")) {
-          return NextResponse.redirect(new URL("/percetakan", request.url));
         } else if (userRoles.includes("editor")) {
           return NextResponse.redirect(new URL("/editor", request.url));
         } else if (userRoles.includes("penulis")) {
@@ -84,7 +78,7 @@ export function middleware(request: NextRequest) {
       return response;
     }
   }
-  
+
   return NextResponse.next();
 }
 
@@ -98,8 +92,7 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files (images, etc)
-     * - download-app (APK download)
      */
-    "/((?!api|_next/static|_next/image|favicon.ico|logo.png|images|download-app|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.gif).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|logo.png|images|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.svg|.*\\.gif).*)",
   ],
 };

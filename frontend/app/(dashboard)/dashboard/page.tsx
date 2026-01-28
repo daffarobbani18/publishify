@@ -54,53 +54,46 @@ export default function DashboardPage() {
       let isPenulis = false;
       let isEditor = false;
       let isAdmin = false;
-      let isPercetakan = false;
 
       // Cek dari peran (format array string dari backend login)
       if (pengguna.peran) {
         isPenulis = pengguna.peran.includes("penulis");
         isEditor = pengguna.peran.includes("editor");
         isAdmin = pengguna.peran.includes("admin");
-        isPercetakan = pengguna.peran.includes("percetakan");
       }
-      
+
       // Cek dari peranPengguna (format lengkap)
       if (pengguna.peranPengguna) {
-        isPenulis = isPenulis || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "penulis" && peran.aktif
-        );
-        isEditor = isEditor || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "editor" && peran.aktif
-        );
-        isAdmin = isAdmin || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "admin" && peran.aktif
-        );
-        isPercetakan = isPercetakan || pengguna.peranPengguna.some(
-          (peran) => peran.jenisPeran === "percetakan" && peran.aktif
-        );
+        isPenulis =
+          isPenulis ||
+          pengguna.peranPengguna.some(
+            (peran) => peran.jenisPeran === "penulis" && peran.aktif,
+          );
+        isEditor =
+          isEditor ||
+          pengguna.peranPengguna.some(
+            (peran) => peran.jenisPeran === "editor" && peran.aktif,
+          );
+        isAdmin =
+          isAdmin ||
+          pengguna.peranPengguna.some(
+            (peran) => peran.jenisPeran === "admin" && peran.aktif,
+          );
       }
-      
-      // Priority redirect: Admin > Editor > Percetakan > Penulis
+
+      // Priority redirect: Admin > Editor > Penulis
       if (isAdmin) {
         console.log("Redirecting admin to /admin");
         setIsRedirecting(true);
         router.replace("/admin");
         return;
       }
-      
+
       // Jika hanya editor (bukan penulis), redirect ke dashboard editor
       if (isEditor && !isPenulis) {
         console.log("Redirecting editor to /dashboard/editor");
         setIsRedirecting(true);
         router.replace("/dashboard/editor");
-        return;
-      }
-
-      // Jika hanya percetakan
-      if (isPercetakan && !isPenulis) {
-        console.log("Redirecting percetakan to /dashboard/percetakan");
-        setIsRedirecting(true);
-        router.replace("/dashboard/percetakan");
         return;
       }
     }
@@ -110,7 +103,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Jangan fetch jika sedang redirect
     if (isRedirecting) return;
-    
+
     const fetchStatistik = async () => {
       setLoadingStats(true);
       try {
@@ -130,10 +123,26 @@ export default function DashboardPage() {
   // Data statistik berdasarkan API response
   const stats = statistik
     ? [
-        { label: "Draft", value: statistik.perStatus.draft || 0, color: "bg-blue-500" },
-        { label: "Review", value: statistik.perStatus.dalam_review || 0, color: "bg-yellow-500" },
-        { label: "Disetujui", value: statistik.perStatus.disetujui || 0, color: "bg-purple-500" },
-        { label: "Diterbitkan", value: statistik.perStatus.diterbitkan || 0, color: "bg-green-500" },
+        {
+          label: "Draft",
+          value: statistik.perStatus.draft || 0,
+          color: "bg-blue-500",
+        },
+        {
+          label: "Review",
+          value: statistik.perStatus.dalam_review || 0,
+          color: "bg-yellow-500",
+        },
+        {
+          label: "Disetujui",
+          value: statistik.perStatus.disetujui || 0,
+          color: "bg-purple-500",
+        },
+        {
+          label: "Diterbitkan",
+          value: statistik.perStatus.diterbitkan || 0,
+          color: "bg-green-500",
+        },
       ]
     : [
         { label: "Draft", value: 0, color: "bg-blue-500" },
@@ -153,7 +162,7 @@ export default function DashboardPage() {
   ];
 
   // Komentar terbaru (placeholder - bisa diganti dengan API nanti)
-  const comments: Array<{nama: string; waktu: string; pesan: string}> = [];
+  const comments: Array<{ nama: string; waktu: string; pesan: string }> = [];
 
   // Rating (placeholder - bisa diganti dengan API nanti)
   const rating = 0;
@@ -164,7 +173,9 @@ export default function DashboardPage() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-[#14b8a6] mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Mengarahkan ke Dashboard Editor...</p>
+          <p className="text-gray-600 font-medium">
+            Mengarahkan ke Dashboard Editor...
+          </p>
         </div>
       </div>
     );
@@ -204,8 +215,18 @@ export default function DashboardPage() {
                     onClick={() => setSearchQuery("")}
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 )}
@@ -215,12 +236,22 @@ export default function DashboardPage() {
             {/* User Profile */}
             <div className="flex items-center gap-4 ml-8">
               <button className="relative p-2 text-gray-600 hover:text-[#14b8a6] transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
                 </svg>
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
-              
+
               <div className="w-10 h-10 bg-[#14b8a6] rounded-full flex items-center justify-center text-white font-semibold cursor-pointer hover:bg-[#0d9488] transition-colors">
                 P
               </div>
@@ -282,15 +313,23 @@ export default function DashboardPage() {
               {/* Simple Bar Chart */}
               <div className="relative h-64 bg-gray-50 rounded-xl p-6">
                 <div className="absolute top-4 left-4 right-4">
-                  <div className="text-xs font-semibold text-gray-500 mb-2">BUKU 1</div>
+                  <div className="text-xs font-semibold text-gray-500 mb-2">
+                    BUKU 1
+                  </div>
                 </div>
 
                 {/* Chart Area */}
                 {loadingChart ? (
                   <div className="h-full flex items-end justify-between px-4 pt-12 pb-8 animate-pulse">
                     {[40, 70, 55, 85, 60, 95].map((h, index) => (
-                      <div key={index} className="flex flex-col items-center gap-2 flex-1">
-                        <div className="w-full flex items-end justify-center" style={{ height: "150px" }}>
+                      <div
+                        key={index}
+                        className="flex flex-col items-center gap-2 flex-1"
+                      >
+                        <div
+                          className="w-full flex items-end justify-center"
+                          style={{ height: "150px" }}
+                        >
                           <div
                             className="w-12 bg-gray-200 rounded-t-lg"
                             style={{ height: `${h}%`, minHeight: "6px" }}
@@ -303,13 +342,22 @@ export default function DashboardPage() {
                 ) : (
                   <div className="h-full flex items-end justify-between px-4 pt-12 pb-8">
                     {salesData.map((data, index) => (
-                      <div key={index} className="flex flex-col items-center gap-2 flex-1">
+                      <div
+                        key={index}
+                        className="flex flex-col items-center gap-2 flex-1"
+                      >
                         {/* Bar */}
-                        <div className="w-full flex items-end justify-center" style={{ height: "150px" }}>
+                        <div
+                          className="w-full flex items-end justify-center"
+                          style={{ height: "150px" }}
+                        >
                           <div
                             className="w-12 bg-gradient-to-t from-[#14b8a6] to-[#0d9488] rounded-t-lg transition-all hover:opacity-80"
                             style={{
-                              height: data.value === 0 ? "4px" : `${(data.value / Math.max(...salesData.map(d => d.value), 1)) * 100}%`,
+                              height:
+                                data.value === 0
+                                  ? "4px"
+                                  : `${(data.value / Math.max(...salesData.map((d) => d.value), 1)) * 100}%`,
                               minHeight: "4px",
                             }}
                           ></div>
@@ -333,7 +381,7 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-6">
                 Komentar
               </h3>
-              
+
               {loadingComments ? (
                 <div className="space-y-4 animate-pulse">
                   {[1, 2, 3].map((i) => (
@@ -373,7 +421,9 @@ export default function DashboardPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between">
-                          <div className="font-medium text-gray-900">{c.nama}</div>
+                          <div className="font-medium text-gray-900">
+                            {c.nama}
+                          </div>
                           <div className="text-xs text-gray-500">{c.waktu}</div>
                         </div>
                         <p className="text-gray-700 mt-1">{c.pesan}</p>
@@ -389,7 +439,7 @@ export default function DashboardPage() {
               <h3 className="text-lg font-semibold text-gray-900 mb-6">
                 Rating
               </h3>
-              
+
               <div className="flex items-center justify-center gap-2 py-8">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <svg
@@ -404,13 +454,15 @@ export default function DashboardPage() {
                   </svg>
                 ))}
               </div>
-              
+
               <div className="text-center">
                 <div className="text-3xl font-bold text-gray-900 mb-1">
                   {rating.toFixed(1)}
                 </div>
                 <div className="text-sm text-gray-500">dari 5.0</div>
-                <div className="text-xs text-gray-400 mt-2">Belum ada rating</div>
+                <div className="text-xs text-gray-400 mt-2">
+                  Belum ada rating
+                </div>
               </div>
             </div>
           </div>

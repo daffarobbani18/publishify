@@ -404,7 +404,6 @@ export class PenggunaService {
       {
         penulis: 0,
         editor: 0,
-        percetakan: 0,
         admin: 0,
       } as Record<JenisPeran, number>,
     );

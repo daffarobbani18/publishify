@@ -4,8 +4,7 @@ import { FormatBukuEnum } from './buat-naskah.dto';
 
 /**
  * Schema Zod untuk Admin terbitkan naskah
- * Admin mengisi ISBN, format buku, dan jumlah halaman
- * Biaya produksi ditentukan oleh mitra percetakan, bukan admin
+ * Admin mengisi ISBN dan jumlah halaman
  */
 export const TerbitkanNaskahSchema = z.object({
   isbn: z
@@ -17,12 +16,12 @@ export const TerbitkanNaskahSchema = z.object({
 
   formatBuku: FormatBukuEnum.optional(),
 
+  // jumlahHalaman opsional, akan menggunakan nilai yang sudah ada jika tidak diisi
   jumlahHalaman: z
-    .number({
-      required_error: 'Jumlah halaman wajib diisi',
-    })
+    .number()
     .int('Jumlah halaman harus bilangan bulat')
-    .min(1, 'Jumlah halaman minimal 1'),
+    .min(1, 'Jumlah halaman minimal 1')
+    .optional(),
 });
 
 /**

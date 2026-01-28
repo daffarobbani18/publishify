@@ -25,8 +25,13 @@ import {
   AjukanNaskahDtoClass,
   TerbitkanNaskahDto,
   TerbitkanNaskahDtoClass,
+  UbahStatusNaskahDto,
 } from './dto';
-import { AturHargaJualDto, AturHargaJualDtoClass, AturHargaJualSchema } from './dto/atur-harga-jual.dto';
+import {
+  AturHargaJualDto,
+  AturHargaJualDtoClass,
+  AturHargaJualSchema,
+} from './dto/atur-harga-jual.dto';
 import { JwtAuthGuard } from '@/modules/auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '@/modules/auth/guards/optional-jwt-auth.guard';
 import { PeranGuard } from '@/modules/auth/guards/roles.guard';
@@ -40,6 +45,9 @@ import {
   FilterNaskahSchema,
   AjukanNaskahSchema,
   TerbitkanNaskahSchema,
+  UbahStatusNaskahSchema,
+  SubmitRevisiSchema,
+  type SubmitRevisiDto,
 } from './dto';
 import { CacheInterceptor, CacheTTL } from '@/common/cache';
 
@@ -194,15 +202,14 @@ export class NaskahController {
   @Peran('penulis')
   @ApiOperation({
     summary: 'Ambil naskah yang sudah diterbitkan dan siap dicetak',
-    description: 'Penulis mengambil daftar naskah yang sudah disetujui dan selesai direview dengan rekomendasi setujui. Naskah ini siap untuk dicetak.',
+    description:
+      'Penulis mengambil daftar naskah yang sudah disetujui dan selesai direview dengan rekomendasi setujui. Naskah ini siap untuk dicetak.',
   })
   @ApiResponse({
     status: 200,
     description: 'Daftar naskah diterbitkan berhasil diambil',
   })
-  async ambilNaskahDiterbitkan(
-    @PenggunaSaatIni('id') idPenulis: string,
-  ) {
+  async ambilNaskahDiterbitkan(@PenggunaSaatIni('id') idPenulis: string) {
     return await this.naskahService.ambilNaskahDiterbitkan(idPenulis);
   }
 
@@ -397,6 +404,30 @@ export class NaskahController {
   }
 
   /**
+   * PUT /naskah/:id/status - Ubah status naskah (admin/editor helper)
+   * Role: admin, editor
+   */
+  @Put(':id/status')
+  @ApiBearerAuth()
+  @Peran('admin', 'editor')
+  @ApiOperation({
+    summary: 'Ubah status naskah secara langsung',
+    description:
+      'Admin/Editor mengubah status naskah secara manual (misal: revert status, skip flow, dll).',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Status naskah berhasil diubah',
+  })
+  async ubahStatus(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidasiZodPipe(UbahStatusNaskahSchema)) dto: UbahStatusNaskahDto,
+    @PenggunaSaatIni('id') idPengguna: string,
+  ) {
+    return await this.naskahService.ubahStatus(id, dto.status, idPengguna);
+  }
+
+  /**
    * PUT /naskah/:id/harga-jual - Penulis atur harga jual
    * Role: penulis (owner)
    */
@@ -405,7 +436,8 @@ export class NaskahController {
   @Peran('penulis')
   @ApiOperation({
     summary: 'Atur harga jual buku',
-    description: 'Penulis menentukan harga jual untuk buku yang sudah diterbitkan. Harga harus lebih tinggi dari biaya produksi.',
+    description:
+      'Penulis menentukan harga jual untuk buku yang sudah diterbitkan. Harga harus lebih tinggi dari biaya produksi.',
   })
   @ApiResponse({
     status: 200,
@@ -422,7 +454,8 @@ export class NaskahController {
   })
   @ApiResponse({
     status: 400,
-    description: 'Harga jual hanya bisa diatur untuk naskah yang sudah diterbitkan atau harga jual harus lebih besar dari biaya produksi',
+    description:
+      'Harga jual hanya bisa diatur untuk naskah yang sudah diterbitkan atau harga jual harus lebih besar dari biaya produksi',
   })
   async aturHargaJual(
     @Param('id', ParseUUIDPipe) id: string,
@@ -466,5 +499,71 @@ export class NaskahController {
     @PenggunaSaatIni('peran') peranPengguna: string[],
   ) {
     return await this.naskahService.hapusNaskah(id, idPengguna, peranPengguna);
+  }
+
+  /**
+   * Ambil feedback/review untuk naskah
+   * Digunakan penulis untuk melihat hasil review editor
+   */
+  @Get(':id/feedback')
+  @ApiBearerAuth()
+  @Peran('penulis')
+  @ApiOperation({
+    summary: 'Ambil feedback review naskah',
+    description: 'Penulis melihat feedback dari editor untuk naskah yang sudah direview.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Feedback berhasil diambil',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Naskah tidak ditemukan',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Tidak memiliki akses ke naskah ini',
+  })
+  async ambilFeedbackNaskah(
+    @Param('id', ParseUUIDPipe) id: string,
+    @PenggunaSaatIni('id') idPenulis: string,
+  ) {
+    return await this.naskahService.ambilFeedbackNaskah(id, idPenulis);
+  }
+
+  /**
+   * Submit revisi naskah
+   * Penulis mengirim naskah yang sudah direvisi
+   */
+  @Post(':id/submit-revisi')
+  @ApiBearerAuth()
+  @Peran('penulis')
+  @ApiOperation({
+    summary: 'Submit revisi naskah',
+    description:
+      'Penulis mengirim naskah yang sudah direvisi. Bisa melalui konten HTML (rich text editor) atau upload file.',
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Revisi berhasil disubmit',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Status naskah tidak valid atau data tidak lengkap',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Naskah tidak ditemukan',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Tidak memiliki akses ke naskah ini',
+  })
+  async submitRevisi(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ValidasiZodPipe(SubmitRevisiSchema)) dto: SubmitRevisiDto,
+    @PenggunaSaatIni('id') idPenulis: string,
+  ) {
+    return await this.naskahService.submitRevisi(id, idPenulis, dto);
   }
 }

@@ -45,7 +45,7 @@ export const DaftarSchema = z
       .optional(),
 
     jenisPeran: z
-      .enum(['penulis', 'editor', 'percetakan'], {
+      .enum(['penulis', 'editor'], {
         required_error: 'Jenis peran wajib dipilih',
         invalid_type_error: 'Jenis peran tidak valid',
       })
@@ -125,12 +125,12 @@ export class DaftarDtoClass {
 
   @ApiProperty({
     description: 'Peran yang dipilih saat registrasi',
-    enum: ['penulis', 'editor', 'percetakan'],
+    enum: ['penulis', 'editor'],
     default: 'penulis',
     example: 'penulis',
     type: String,
   })
-  jenisPeran!: 'penulis' | 'editor' | 'percetakan';
+  jenisPeran!: 'penulis' | 'editor';
 
   @ApiProperty({
     description: 'Alamat lengkap pengguna',

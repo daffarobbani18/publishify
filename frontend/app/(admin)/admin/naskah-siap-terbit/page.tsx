@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useCallback, useRef } from "react";
@@ -6,24 +7,18 @@ import { toast } from "sonner";
 import {
   BookOpen,
   CheckCircle2,
-  Clock,
   Search,
   Eye,
   BookCheck,
   Loader2,
   FileText,
   Download,
-  FileType,
   Upload,
-  Image as ImageIcon,
-  Lock,
-  ExternalLink,
   AlertTriangle,
   X,
   File,
   Sparkles,
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -37,35 +32,39 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { naskahApi, type Naskah } from "@/lib/api/naskah";
 import { uploadApi } from "@/lib/api/upload";
+import { getFileUrl } from "@/lib/utils";
 
 // ============================================
 // CONSTANTS
 // ============================================
 
 const formatBukuList = [
-  { kode: "A4", nama: "A4", ukuran: "21 × 29.7 cm", deskripsi: "Buku teks & katalog" },
-  { kode: "A5", nama: "A5", ukuran: "14.8 × 21 cm", deskripsi: "Novel & buku populer" },
-  { kode: "B5", nama: "B5", ukuran: "17.6 × 25 cm", deskripsi: "Majalah & jurnal" },
+  {
+    kode: "A4",
+    nama: "A4",
+    ukuran: "21 × 29.7 cm",
+    deskripsi: "Buku teks & katalog",
+  },
+  {
+    kode: "A5",
+    nama: "A5",
+    ukuran: "14.8 × 21 cm",
+    deskripsi: "Novel & buku populer",
+  },
+  {
+    kode: "B5",
+    nama: "B5",
+    ukuran: "17.6 × 25 cm",
+    deskripsi: "Majalah & jurnal",
+  },
 ] as const;
 
 // ============================================
 // HELPER FUNCTIONS
 // ============================================
-
-function formatTanggal(iso: string) {
-  const date = new Date(iso);
-  return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 function getFileExtension(url: string): string {
   const filename = url.split("/").pop() || "";
@@ -88,8 +87,10 @@ interface DropzoneProps {
   helperText: string;
   icon: React.ReactNode;
   selectedFile?: File | null;
+  existingUrl?: string | null;
   onClear?: () => void;
   disabled?: boolean;
+  isUploading?: boolean;
 }
 
 function Dropzone({
@@ -99,16 +100,21 @@ function Dropzone({
   helperText,
   icon,
   selectedFile,
+  existingUrl,
   onClear,
   disabled,
+  isUploading,
 }: DropzoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!disabled) setIsDragging(true);
-  }, [disabled]);
+  const handleDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!disabled) setIsDragging(true);
+    },
+    [disabled],
+  );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -127,7 +133,10 @@ function Dropzone({
         const acceptedTypes = accept.split(",").map((t) => t.trim());
         const fileExt = `.${file.name.split(".").pop()?.toLowerCase()}`;
 
-        if (acceptedTypes.includes(fileExt) || acceptedTypes.includes(file.type)) {
+        if (
+          acceptedTypes.includes(fileExt) ||
+          acceptedTypes.includes(file.type)
+        ) {
           onFileSelect(file);
         } else {
           toast.error("Format file tidak didukung", {
@@ -136,7 +145,7 @@ function Dropzone({
         }
       }
     },
-    [accept, onFileSelect, disabled]
+    [accept, onFileSelect, disabled],
   );
 
   const handleFileChange = useCallback(
@@ -146,27 +155,42 @@ function Dropzone({
         onFileSelect(files[0]);
       }
     },
-    [onFileSelect]
+    [onFileSelect],
   );
 
-  if (selectedFile) {
+  // Tampilkan jika ada file yang dipilih atau sedang upload
+  if (selectedFile || isUploading) {
     return (
-      <div className="border-2 border-green-300 bg-green-50 rounded-xl p-4">
+      <div
+        className={`border-2 rounded-xl p-4 ${isUploading ? "border-blue-300 bg-blue-50" : "border-green-300 bg-green-50"}`}
+      >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <div
+              className={`p-2 rounded-lg ${isUploading ? "bg-blue-100" : "bg-green-100"}`}
+            >
+              {isUploading ? (
+                <Loader2 className="h-5 w-5 text-blue-600 animate-spin" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              )}
             </div>
             <div>
-              <p className="font-medium text-green-900 truncate max-w-[200px]">
-                {selectedFile.name}
+              <p
+                className={`font-medium truncate max-w-[200px] ${isUploading ? "text-blue-900" : "text-green-900"}`}
+              >
+                {selectedFile?.name || "Mengunggah..."}
               </p>
-              <p className="text-xs text-green-600">
-                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              <p
+                className={`text-xs ${isUploading ? "text-blue-600" : "text-green-600"}`}
+              >
+                {isUploading
+                  ? "Sedang mengunggah..."
+                  : `${((selectedFile?.size || 0) / 1024 / 1024).toFixed(2)} MB`}
               </p>
             </div>
           </div>
-          {onClear && !disabled && (
+          {onClear && !disabled && !isUploading && (
             <Button
               variant="ghost"
               size="sm"
@@ -176,6 +200,48 @@ function Dropzone({
               <X className="h-4 w-4" />
             </Button>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // Tampilkan jika ada URL file existing
+  if (existingUrl) {
+    return (
+      <div className="border-2 border-blue-300 bg-blue-50 rounded-xl p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <File className="h-5 w-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="font-medium text-blue-900 truncate max-w-[200px]">
+                {getFileName(existingUrl)}
+              </p>
+              <p className="text-xs text-blue-600">File tersimpan di server</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(getFileUrl(existingUrl), "_blank")}
+              className="border-blue-300 text-blue-700 hover:bg-blue-100"
+            >
+              <Eye className="h-4 w-4 mr-1" />
+              Lihat
+            </Button>
+            {onClear && !disabled && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClear}
+                className="text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -202,7 +268,9 @@ function Dropzone({
         disabled={disabled}
       />
       <div className="flex flex-col items-center gap-2">
-        <div className={`p-3 rounded-full ${isDragging ? "bg-blue-100" : "bg-gray-100"}`}>
+        <div
+          className={`p-3 rounded-full ${isDragging ? "bg-blue-100" : "bg-gray-100"}`}
+        >
           {icon}
         </div>
         <p className="font-medium text-gray-700">{label}</p>
@@ -223,20 +291,12 @@ export default function NaskahSiapTerbitPage() {
   // Modal State
   const [selectedNaskah, setSelectedNaskah] = useState<Naskah | null>(null);
   const [modalTerbitkan, setModalTerbitkan] = useState(false);
-  const [modalPreviewPdf, setModalPreviewPdf] = useState(false);
 
-  // PDF Workflow State
-  const [activeTab, setActiveTab] = useState<"konversi" | "upload">("konversi");
-  const [isConvertingPdf, setIsConvertingPdf] = useState(false);
-  const [convertedPdfUrl, setConvertedPdfUrl] = useState<string | null>(null);
+  // Upload State
   const [uploadedPdfFile, setUploadedPdfFile] = useState<File | null>(null);
   const [uploadedPdfUrl, setUploadedPdfUrl] = useState<string | null>(null);
-  const [isPdfLocked, setIsPdfLocked] = useState(false);
-  const [pdfConfirmationChecked, setPdfConfirmationChecked] = useState(false);
-
-  // Cover Upload State
-  const [uploadedCoverFile, setUploadedCoverFile] = useState<File | null>(null);
-  const [uploadedCoverUrl, setUploadedCoverUrl] = useState<string | null>(null);
+  const [isUploadingPdf, setIsUploadingPdf] = useState(false);
+  const [pdfConfirmed, setPdfConfirmed] = useState(false);
 
   // Form Data State
   const [formData, setFormData] = useState({
@@ -258,7 +318,9 @@ export default function NaskahSiapTerbitPage() {
   } = useQuery({
     queryKey: ["naskah-siap-terbit"],
     queryFn: async () => {
-      const result = await naskahApi.ambilSemuaNaskahAdmin({ status: "disetujui" });
+      const result = await naskahApi.ambilSemuaNaskahAdmin({
+        status: "siap_terbit",
+      });
       return result;
     },
   });
@@ -269,7 +331,11 @@ export default function NaskahSiapTerbitPage() {
       payload,
     }: {
       id: string;
-      payload: { isbn: string; formatBuku?: "A4" | "A5" | "B5"; jumlahHalaman: number };
+      payload: {
+        isbn: string;
+        formatBuku?: "A4" | "A5" | "B5";
+        jumlahHalaman: number;
+      };
     }) => {
       const result = await naskahApi.terbitkanNaskah(id, payload);
       return result;
@@ -282,7 +348,8 @@ export default function NaskahSiapTerbitPage() {
       resetModal();
     },
     onError: (error: any) => {
-      const message = error?.response?.data?.pesan || error.message || "Terjadi kesalahan";
+      const message =
+        error?.response?.data?.pesan || error.message || "Terjadi kesalahan";
       toast.error("Gagal menerbitkan naskah", { description: message });
     },
   });
@@ -295,12 +362,21 @@ export default function NaskahSiapTerbitPage() {
   const filteredNaskah = naskahList.filter((naskah: Naskah) => {
     const matchSearch =
       naskah.judul.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (naskah.subJudul?.toLowerCase() || "").includes(searchQuery.toLowerCase());
+      (naskah.subJudul?.toLowerCase() || "").includes(
+        searchQuery.toLowerCase(),
+      );
     return matchSearch;
   });
 
-  // Final PDF URL (dari konversi atau upload)
-  const finalPdfUrl = activeTab === "konversi" ? convertedPdfUrl : uploadedPdfUrl;
+  // Cek apakah naskah sudah punya file (bisa PDF atau DOCX)
+  const hasExistingFile = !!selectedNaskah?.urlFile;
+  const existingFileIsPdf =
+    hasExistingFile &&
+    getFileExtension(selectedNaskah?.urlFile || "").toLowerCase() === "pdf";
+
+  // Final PDF: dari upload baru atau file existing jika sudah PDF
+  const finalPdfUrl =
+    uploadedPdfUrl || (existingFileIsPdf ? selectedNaskah?.urlFile : null);
   const hasFinalPdf = !!finalPdfUrl;
 
   // ============================================
@@ -310,15 +386,10 @@ export default function NaskahSiapTerbitPage() {
   const resetModal = () => {
     setModalTerbitkan(false);
     setSelectedNaskah(null);
-    setActiveTab("konversi");
-    setIsConvertingPdf(false);
-    setConvertedPdfUrl(null);
     setUploadedPdfFile(null);
     setUploadedPdfUrl(null);
-    setIsPdfLocked(false);
-    setPdfConfirmationChecked(false);
-    setUploadedCoverFile(null);
-    setUploadedCoverUrl(null);
+    setIsUploadingPdf(false);
+    setPdfConfirmed(false);
     setFormData({ isbn: "", formatBuku: "A5", jumlahHalaman: "" });
   };
 
@@ -329,130 +400,69 @@ export default function NaskahSiapTerbitPage() {
       formatBuku: (naskah.formatBuku as "A4" | "A5" | "B5") || "A5",
       jumlahHalaman: naskah.jumlahHalaman?.toString() || "",
     });
+
+    // Jika file existing sudah PDF, otomatis set confirmed
+    if (
+      naskah.urlFile &&
+      getFileExtension(naskah.urlFile).toLowerCase() === "pdf"
+    ) {
+      setPdfConfirmed(true);
+    }
+
     setModalTerbitkan(true);
   };
 
   const handleDownloadOriginal = () => {
     if (selectedNaskah?.urlFile) {
-      // Buat full URL jika relative
-      const fileUrl = selectedNaskah.urlFile.startsWith("http")
-        ? selectedNaskah.urlFile
-        : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}${selectedNaskah.urlFile}`;
-      window.open(fileUrl, "_blank");
-    }
-  };
-
-  const handleConvertToPdf = async () => {
-    if (!selectedNaskah?.urlFile) {
-      toast.error("Tidak ada file naskah untuk dikonversi");
-      return;
-    }
-
-    // Cek apakah file sudah PDF
-    const fileExt = getFileExtension(selectedNaskah.urlFile);
-    if (fileExt === "pdf") {
-      // File sudah PDF, langsung gunakan
-      setConvertedPdfUrl(selectedNaskah.urlFile);
-      toast.success("File sudah dalam format PDF", {
-        description: "Tidak perlu konversi",
-      });
-      return;
-    }
-
-    setIsConvertingPdf(true);
-    setConvertedPdfUrl(null);
-
-    try {
-      // Panggil API backend untuk konversi
-      const result = await uploadApi.konversiDariUrl(selectedNaskah.urlFile);
-      
-      // Set URL PDF hasil konversi
-      setConvertedPdfUrl(result.url);
-
-      toast.success("Konversi berhasil!", {
-        description: `File berhasil dikonversi ke PDF`,
-      });
-    } catch (error: any) {
-      console.error("Error konversi PDF:", error);
-      
-      // Handle error spesifik
-      const errorMessage = error.response?.data?.pesan || error.message || "Terjadi kesalahan saat konversi";
-      
-      // Cek jika error karena LibreOffice tidak terinstall
-      if (errorMessage.toLowerCase().includes("libreoffice")) {
-        toast.error("LibreOffice belum terinstall", {
-          description: "Fitur konversi otomatis memerlukan LibreOffice di server. Silakan gunakan 'Upload PDF Manual' sebagai alternatif.",
-          duration: 6000,
-        });
-      } else {
-        toast.error("Gagal mengkonversi file", {
-          description: errorMessage,
-        });
-      }
-    } finally {
-      setIsConvertingPdf(false);
+      window.open(getFileUrl(selectedNaskah.urlFile), "_blank");
     }
   };
 
   const handleUploadPdf = async (file: File) => {
     setUploadedPdfFile(file);
+    setIsUploadingPdf(true);
 
-    // TODO: Upload file ke storage
-    // const result = await uploadApi.uploadFile(file);
-    // setUploadedPdfUrl(result.data.url);
-
-    // Simulasi upload
-    const fakeUrl = URL.createObjectURL(file);
-    setUploadedPdfUrl(fakeUrl);
-
-    toast.success("File PDF berhasil dipilih", {
-      description: "Silakan preview dan konfirmasi",
-    });
-  };
-
-  const handleUploadCover = async (file: File) => {
-    setUploadedCoverFile(file);
-
-    // TODO: Upload file ke storage
-    // const result = await uploadApi.uploadFile(file);
-    // setUploadedCoverUrl(result.data.url);
-
-    // Simulasi upload
-    const fakeUrl = URL.createObjectURL(file);
-    setUploadedCoverUrl(fakeUrl);
-
-    toast.success("File cover berhasil dipilih");
-  };
-
-  const handlePreviewPdf = () => {
-    if (finalPdfUrl) {
-      setModalPreviewPdf(true);
+    try {
+      // Upload file ke server
+      const result = await uploadApi.uploadFile(file, "naskah");
+      setUploadedPdfUrl(result.url);
+      setPdfConfirmed(false); // Reset konfirmasi setelah upload baru
+      toast.success("File PDF berhasil diunggah", {
+        description: "Silakan konfirmasi file sebelum menerbitkan",
+      });
+    } catch (error: any) {
+      console.error("Error upload PDF:", error);
+      toast.error("Gagal mengunggah file", {
+        description: error.response?.data?.pesan || error.message,
+      });
+      setUploadedPdfFile(null);
+      setUploadedPdfUrl(null);
+    } finally {
+      setIsUploadingPdf(false);
     }
   };
 
-  const handleLockPdf = () => {
-    if (!pdfConfirmationChecked) {
-      toast.error("Anda harus mencentang konfirmasi terlebih dahulu");
-      return;
-    }
-    setIsPdfLocked(true);
-    toast.success("File PDF telah dikunci!", {
-      description: "Silakan lanjutkan ke pengisian data penerbitan",
-    });
-  };
-
-  const handleUnlockPdf = () => {
-    setIsPdfLocked(false);
-    setPdfConfirmationChecked(false);
+  const handleClearPdf = () => {
+    setUploadedPdfFile(null);
+    setUploadedPdfUrl(null);
+    setPdfConfirmed(false);
   };
 
   const handleSubmitTerbitkan = () => {
     if (!selectedNaskah) return;
 
     // Validasi PDF
-    if (!isPdfLocked) {
-      toast.error("PDF belum dikunci", {
-        description: "Pastikan Anda sudah mengunci file PDF final",
+    if (!hasFinalPdf) {
+      toast.error("File PDF diperlukan", {
+        description:
+          "Upload file PDF atau pastikan naskah sudah memiliki file PDF",
+      });
+      return;
+    }
+
+    if (!pdfConfirmed) {
+      toast.error("Konfirmasi PDF diperlukan", {
+        description: "Centang konfirmasi bahwa file PDF sudah benar",
       });
       return;
     }
@@ -516,8 +526,12 @@ export default function NaskahSiapTerbitPage() {
                 <BookCheck className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">{filteredNaskah.length}</div>
-                <div className="text-xs sm:text-sm font-medium text-slate-700">Menunggu Penerbitan</div>
+                <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">
+                  {filteredNaskah.length}
+                </div>
+                <div className="text-xs sm:text-sm font-medium text-slate-700">
+                  Menunggu Penerbitan
+                </div>
               </div>
             </div>
           </div>
@@ -528,8 +542,12 @@ export default function NaskahSiapTerbitPage() {
                 <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">Disetujui</div>
-                <div className="text-xs sm:text-sm font-medium text-slate-700">Status Review</div>
+                <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">
+                  Disetujui
+                </div>
+                <div className="text-xs sm:text-sm font-medium text-slate-700">
+                  Status Review
+                </div>
               </div>
             </div>
           </div>
@@ -540,8 +558,12 @@ export default function NaskahSiapTerbitPage() {
                 <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">PDF & ISBN</div>
-                <div className="text-xs sm:text-sm font-medium text-slate-700">Langkah Selanjutnya</div>
+                <div className="text-xl sm:text-2xl font-bold text-slate-900 mb-0.5">
+                  PDF & ISBN
+                </div>
+                <div className="text-xs sm:text-sm font-medium text-slate-700">
+                  Langkah Selanjutnya
+                </div>
               </div>
             </div>
           </div>
@@ -593,7 +615,9 @@ export default function NaskahSiapTerbitPage() {
                 <BookCheck className="h-10 w-10 text-slate-400" />
               </div>
               <div className="text-center">
-                <p className="font-semibold text-slate-900">Tidak ada naskah siap terbit</p>
+                <p className="font-semibold text-slate-900">
+                  Tidak ada naskah siap terbit
+                </p>
                 <p className="text-sm text-slate-600 mt-1">
                   Semua naskah yang disetujui sudah diterbitkan
                 </p>
@@ -606,13 +630,16 @@ export default function NaskahSiapTerbitPage() {
         {!isLoading && !error && filteredNaskah.length > 0 && (
           <div className="space-y-4">
             {filteredNaskah.map((naskah: Naskah) => (
-              <div key={naskah.id} className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all p-4 sm:p-6">
+              <div
+                key={naskah.id}
+                className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-lg transition-all p-4 sm:p-6"
+              >
                 <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
                   {/* Cover */}
                   <div className="flex-shrink-0 flex justify-center lg:justify-start">
                     {naskah.urlSampul ? (
                       <img
-                        src={naskah.urlSampul}
+                        src={getFileUrl(naskah.urlSampul)}
                         alt={naskah.judul}
                         className="w-24 h-36 md:w-28 md:h-42 lg:w-32 lg:h-48 object-cover rounded-lg shadow-md"
                       />
@@ -633,7 +660,7 @@ export default function NaskahSiapTerbitPage() {
                         </h3>
                         <Badge className="bg-green-100 text-green-800 border border-green-200 self-start">
                           <CheckCircle2 className="h-3 w-3 mr-1" />
-                          Disetujui
+                          Siap Terbit
                         </Badge>
                       </div>
                       {naskah.subJudul && (
@@ -644,17 +671,23 @@ export default function NaskahSiapTerbitPage() {
                     </div>
 
                     {/* Sinopsis */}
-                    <p className="text-sm text-slate-700 line-clamp-2">{naskah.sinopsis}</p>
+                    <p className="text-sm text-slate-700 line-clamp-2">
+                      {naskah.sinopsis}
+                    </p>
 
                     {/* Metadata */}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs md:text-sm text-slate-600">
                       <span>
                         <span className="text-slate-400">Format:</span>{" "}
-                        <span className="font-medium text-slate-700">{naskah.formatBuku || "A5"}</span>
+                        <span className="font-medium text-slate-700">
+                          {naskah.formatBuku || "A5"}
+                        </span>
                       </span>
                       <span>
                         <span className="text-slate-400">Halaman:</span>{" "}
-                        <span className="font-medium text-slate-700">{naskah.jumlahHalaman || "-"}</span>
+                        <span className="font-medium text-slate-700">
+                          {naskah.jumlahHalaman || "-"}
+                        </span>
                       </span>
                       <span>
                         <span className="text-slate-400">Kata:</span>{" "}
@@ -665,7 +698,9 @@ export default function NaskahSiapTerbitPage() {
                       <span>
                         <span className="text-slate-400">File:</span>{" "}
                         <span className="font-medium text-slate-700">
-                          {naskah.urlFile ? getFileExtension(naskah.urlFile).toUpperCase() : "-"}
+                          {naskah.urlFile
+                            ? getFileExtension(naskah.urlFile).toUpperCase()
+                            : "-"}
                         </span>
                       </span>
                     </div>
@@ -680,10 +715,19 @@ export default function NaskahSiapTerbitPage() {
                         <BookCheck className="h-4 w-4 mr-2" />
                         Terbitkan Naskah
                       </Button>
-                      <Button variant="outline" size="sm" className="hover:bg-teal-50 hover:text-teal-600 hover:border-teal-300">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Detail
-                      </Button>
+                      {naskah.urlFile && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            window.open(getFileUrl(naskah.urlFile!), "_blank")
+                          }
+                          className="hover:bg-teal-50 hover:text-teal-600 hover:border-teal-300"
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          Download File
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -696,12 +740,17 @@ export default function NaskahSiapTerbitPage() {
       {/* ============================================ */}
       {/* MODAL TERBITKAN NASKAH */}
       {/* ============================================ */}
-      <Dialog open={modalTerbitkan} onOpenChange={(open) => !open && resetModal()}>
-        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto p-0">
+      <Dialog
+        open={modalTerbitkan}
+        onOpenChange={(open) => !open && resetModal()}
+      >
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto p-0">
           <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-slate-50 to-slate-100">
-            <DialogTitle className="text-xl md:text-2xl font-bold text-slate-900">Terbitkan Naskah</DialogTitle>
+            <DialogTitle className="text-xl md:text-2xl font-bold text-slate-900">
+              Terbitkan Naskah
+            </DialogTitle>
             <DialogDescription className="text-slate-600">
-              Finalisasi file PDF, upload cover final, lalu isi data penerbitan
+              Pastikan file PDF sudah siap dan isi data penerbitan
             </DialogDescription>
           </DialogHeader>
 
@@ -711,7 +760,7 @@ export default function NaskahSiapTerbitPage() {
               <div className="flex items-start gap-4">
                 {selectedNaskah?.urlSampul ? (
                   <img
-                    src={selectedNaskah.urlSampul}
+                    src={getFileUrl(selectedNaskah.urlSampul)}
                     alt={selectedNaskah.judul}
                     className="w-16 h-24 object-cover rounded-lg shadow"
                   />
@@ -721,64 +770,73 @@ export default function NaskahSiapTerbitPage() {
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-slate-900 truncate">{selectedNaskah?.judul}</h3>
+                  <h3 className="font-bold text-slate-900 truncate">
+                    {selectedNaskah?.judul}
+                  </h3>
                   {selectedNaskah?.subJudul && (
                     <p className="text-sm text-slate-600 italic truncate">
                       {selectedNaskah.subJudul}
                     </p>
                   )}
                   <div className="flex flex-wrap gap-2 mt-2 text-xs text-slate-500">
-                    <span className="text-slate-700 font-medium">Format: {selectedNaskah?.formatBuku || "A5"}</span>
+                    <span className="text-slate-700 font-medium">
+                      Format: {selectedNaskah?.formatBuku || "A5"}
+                    </span>
                     <span>•</span>
-                    <span>{selectedNaskah?.jumlahKata?.toLocaleString("id-ID") || "-"} kata</span>
+                    <span>
+                      {selectedNaskah?.jumlahKata?.toLocaleString("id-ID") ||
+                        "-"}{" "}
+                      kata
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* ============================================ */}
-            {/* LANGKAH 1: FILE PDF FINAL */}
+            {/* LANGKAH 1: FILE PDF */}
             {/* ============================================ */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    isPdfLocked
+                    hasFinalPdf && pdfConfirmed
                       ? "bg-green-500 text-white"
                       : "bg-slate-200 text-slate-700"
                   }`}
                 >
-                  {isPdfLocked ? <CheckCircle2 className="h-4 w-4" /> : "1"}
+                  {hasFinalPdf && pdfConfirmed ? (
+                    <CheckCircle2 className="h-4 w-4" />
+                  ) : (
+                    "1"
+                  )}
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900">File PDF Final</h4>
+                  <h4 className="font-semibold text-slate-900">File PDF</h4>
                   <p className="text-xs text-slate-600">
-                    Pilih metode untuk menghasilkan PDF siap cetak
+                    Upload file PDF siap cetak atau gunakan file existing
                   </p>
                 </div>
-            </div>
-
-            {/* Card File Sumber */}
-            <div className="border-2 border-blue-200 bg-blue-50 rounded-lg overflow-hidden">
-              <div className="px-6 pt-6 pb-2">
-                <h3 className="text-sm font-semibold text-blue-900 flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  File Sumber (Naskah Asli)
-                </h3>
               </div>
-              <div className="px-6 pb-6">
-                {selectedNaskah?.urlFile ? (
+
+              {/* File Sumber Info */}
+              {hasExistingFile && !existingFileIsPdf && (
+                <div className="border-2 border-amber-200 bg-amber-50 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <File className="h-5 w-5 text-blue-600" />
+                      <div className="p-2 bg-amber-100 rounded-lg">
+                        <FileText className="h-5 w-5 text-amber-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-blue-900 truncate max-w-[200px]">
-                          {getFileName(selectedNaskah.urlFile)}
+                        <p className="text-sm font-medium text-amber-900">
+                          File sumber bukan PDF
                         </p>
-                        <p className="text-xs text-blue-600">
-                          Format: {getFileExtension(selectedNaskah.urlFile).toUpperCase()}
+                        <p className="text-xs text-amber-700">
+                          Format:{" "}
+                          {getFileExtension(
+                            selectedNaskah?.urlFile || "",
+                          ).toUpperCase()}{" "}
+                          - Silakan upload file PDF
                         </p>
                       </div>
                     </div>
@@ -786,224 +844,88 @@ export default function NaskahSiapTerbitPage() {
                       variant="outline"
                       size="sm"
                       onClick={handleDownloadOriginal}
-                      className="border-blue-300 text-blue-700 hover:bg-blue-100"
-                      disabled={isPdfLocked}
+                      className="border-amber-300 text-amber-700 hover:bg-amber-100"
                     >
                       <Download className="h-4 w-4 mr-1" />
                       Download
                     </Button>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-amber-800">
-                    <AlertTriangle className="h-4 w-4" />
-                    <span className="text-sm">Tidak ada file naskah yang terunggah</span>
-                  </div>
-                )}
-              </div>
-            </div>
-              {/* Tabs: Konversi Otomatis / Upload Manual */}
-              {!isPdfLocked && (
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(v) => setActiveTab(v as "konversi" | "upload")}
-                >
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="konversi" className="text-xs md:text-sm">
-                      <Sparkles className="h-4 w-4 mr-1.5" />
-                      Konversi Otomatis
-                    </TabsTrigger>
-                    <TabsTrigger value="upload" className="text-xs md:text-sm">
-                      <Upload className="h-4 w-4 mr-1.5" />
-                      Upload PDF Manual
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Tab: Konversi Otomatis */}
-                  <TabsContent value="konversi" className="mt-4 space-y-4">
-                    <div className="border border-slate-200 rounded-lg p-4 bg-white shadow-sm">
-                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                          <div>
-                            <p className="font-medium text-slate-900">Konversi Word ke PDF</p>
-                            <p className="text-xs text-slate-600">
-                              Sistem akan mengkonversi file .docx secara otomatis
-                            </p>
-                          </div>
-                          <Button
-                            onClick={handleConvertToPdf}
-                            disabled={isConvertingPdf || !selectedNaskah?.urlFile}
-                            className={
-                              convertedPdfUrl
-                                ? "bg-green-600 hover:bg-green-700"
-                                : "bg-blue-600 hover:bg-blue-700"
-                            }
-                            size="sm"
-                          >
-                            {isConvertingPdf ? (
-                              <>
-                                <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                                Mengkonversi...
-                              </>
-                            ) : convertedPdfUrl ? (
-                              <>
-                                <CheckCircle2 className="h-4 w-4 mr-1.5" />
-                                Konversi Berhasil
-                              </>
-                            ) : (
-                              <>
-                                <FileType className="h-4 w-4 mr-1.5" />
-                                Coba Konversi
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                  </TabsContent>
-
-                  {/* Tab: Upload Manual */}
-                  <TabsContent value="upload" className="mt-4 space-y-4">
-                    <Dropzone
-                      onFileSelect={handleUploadPdf}
-                      accept=".pdf"
-                      label="Drag & drop file PDF di sini"
-                      helperText="Gunakan ini jika Anda telah melakukan layout manual di luar sistem (misal: InDesign)"
-                      icon={<Upload className="h-6 w-6 text-slate-400" />}
-                      selectedFile={uploadedPdfFile}
-                      onClear={() => {
-                        setUploadedPdfFile(null);
-                        setUploadedPdfUrl(null);
-                      }}
-                    />
-                  </TabsContent>
-                </Tabs>
-              )}
-
-              {/* Area Preview & Konfirmasi PDF */}
-              {hasFinalPdf && !isPdfLocked && (
-                <div className="border-2 border-amber-200 bg-amber-50 rounded-lg p-4 space-y-4">
-                    <div className="flex items-center gap-2 text-amber-800">
-                      <Eye className="h-4 w-4" />
-                      <span className="font-medium text-sm">Preview & Konfirmasi PDF</span>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-white rounded-lg border">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-red-100 rounded-lg">
-                          <FileText className="h-5 w-5 text-red-600" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-900">
-                            {activeTab === "konversi" ? "PDF Hasil Konversi" : uploadedPdfFile?.name}
-                          </p>
-                          <p className="text-xs text-slate-600">
-                            {activeTab === "konversi"
-                              ? "Dikonversi dari file naskah asli"
-                              : `${((uploadedPdfFile?.size || 0) / 1024 / 1024).toFixed(2)} MB`}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={handlePreviewPdf}
-                        className="border-amber-300 text-amber-700 hover:bg-amber-100"
-                      >
-                        <ExternalLink className="h-4 w-4 mr-1" />
-                        Lihat Preview
-                      </Button>
-                    </div>
-
-                    <div className="flex items-start gap-2">
-                      <Checkbox
-                        id="pdfConfirmation"
-                        checked={pdfConfirmationChecked}
-                        onCheckedChange={(checked) =>
-                          setPdfConfirmationChecked(checked as boolean)
-                        }
-                      />
-                      <label
-                        htmlFor="pdfConfirmation"
-                        className="text-xs text-amber-800 leading-tight cursor-pointer"
-                      >
-                        Saya menyatakan layout PDF ini sudah benar, rapi, dan siap cetak/terbit
-                      </label>
-                    </div>
-
-                    <Button
-                      onClick={handleLockPdf}
-                      disabled={!pdfConfirmationChecked}
-                      className="w-full bg-amber-600 hover:bg-amber-700"
-                      size="sm"
-                    >
-                      <Lock className="h-4 w-4 mr-1.5" />
-                      Kunci File PDF Ini
-                    </Button>
                 </div>
               )}
 
-              {/* Status PDF Terkunci */}
-              {isPdfLocked && (
-                <div className="border-2 border-green-300 bg-green-50 rounded-lg p-4">
+              {/* Existing PDF Info */}
+              {existingFileIsPdf && !uploadedPdfUrl && (
+                <div className="border-2 border-green-200 bg-green-50 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-green-100 rounded-lg">
-                        <Lock className="h-5 w-5 text-green-600" />
+                        <FileText className="h-5 w-5 text-green-600" />
                       </div>
                       <div>
-                        <p className="font-medium text-green-900">File PDF Terkunci</p>
-                        <p className="text-xs text-green-600">
-                          {activeTab === "konversi" ? "PDF Hasil Konversi" : uploadedPdfFile?.name}
+                        <p className="text-sm font-medium text-green-900">
+                          File PDF tersedia
+                        </p>
+                        <p className="text-xs text-green-700">
+                          {getFileName(selectedNaskah?.urlFile || "")}
                         </p>
                       </div>
                     </div>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={handleUnlockPdf}
-                      className="text-green-700 hover:text-green-900 hover:bg-green-100"
+                      onClick={() =>
+                        window.open(
+                          getFileUrl(selectedNaskah?.urlFile || ""),
+                          "_blank",
+                        )
+                      }
+                      className="border-green-300 text-green-700 hover:bg-green-100"
                     >
-                      Buka Kunci
+                      <Eye className="h-4 w-4 mr-1" />
+                      Lihat
                     </Button>
                   </div>
                 </div>
               )}
-            </div>
 
-            <Separator />
-
-            {/* ============================================ */}
-            {/* UPLOAD COVER FINAL */}
-            {/* ============================================ */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">
-                  <ImageIcon className="h-4 w-4 text-slate-600" />
-                </div>
-                <div>
-                  <h4 className="font-semibold text-slate-900">Cover Final (Opsional)</h4>
-                  <p className="text-xs text-slate-600">
-                    Upload cover yang sudah dilengkapi ISBN/Barcode
-                  </p>
-                </div>
+              {/* Upload PDF */}
+              <div className="space-y-2">
+                <p className="text-sm text-slate-600">
+                  {existingFileIsPdf
+                    ? "Atau upload PDF baru untuk mengganti:"
+                    : "Upload file PDF siap cetak:"}
+                </p>
+                <Dropzone
+                  onFileSelect={handleUploadPdf}
+                  accept=".pdf"
+                  label="Drag & drop file PDF di sini"
+                  helperText="Format: PDF (max 50MB)"
+                  icon={<Upload className="h-6 w-6 text-slate-400" />}
+                  selectedFile={uploadedPdfFile}
+                  existingUrl={uploadedPdfUrl}
+                  onClear={handleClearPdf}
+                  isUploading={isUploadingPdf}
+                />
               </div>
 
-              <Dropzone
-                onFileSelect={handleUploadCover}
-                accept=".jpg,.jpeg,.png,.pdf"
-                label="Drag & drop file cover di sini"
-                helperText="Format: JPG, PNG, atau PDF (dengan ISBN/Barcode)"
-                icon={<ImageIcon className="h-6 w-6 text-slate-400" />}
-                selectedFile={uploadedCoverFile}
-                onClear={() => {
-                  setUploadedCoverFile(null);
-                  setUploadedCoverUrl(null);
-                }}
-                disabled={!isPdfLocked}
-              />
-
-              {!isPdfLocked && (
-                <p className="text-xs text-slate-500 italic">
-                  * Kunci file PDF terlebih dahulu untuk mengupload cover
-                </p>
+              {/* Konfirmasi PDF */}
+              {hasFinalPdf && (
+                <div className="flex items-start gap-2 p-3 bg-slate-50 rounded-lg border">
+                  <Checkbox
+                    id="pdfConfirm"
+                    checked={pdfConfirmed}
+                    onCheckedChange={(checked) =>
+                      setPdfConfirmed(checked as boolean)
+                    }
+                  />
+                  <label
+                    htmlFor="pdfConfirm"
+                    className="text-sm text-slate-700 leading-tight cursor-pointer"
+                  >
+                    Saya konfirmasi bahwa file PDF sudah benar, layout rapi, dan
+                    siap untuk diterbitkan
+                  </label>
+                </div>
               )}
             </div>
 
@@ -1016,7 +938,7 @@ export default function NaskahSiapTerbitPage() {
               <div className="flex items-center gap-3">
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    isPdfLocked
+                    pdfConfirmed
                       ? "bg-blue-500 text-white"
                       : "bg-slate-200 text-slate-400"
                   }`}
@@ -1024,7 +946,9 @@ export default function NaskahSiapTerbitPage() {
                   2
                 </div>
                 <div>
-                  <h4 className={`font-semibold ${isPdfLocked ? "text-slate-900" : "text-slate-400"}`}>
+                  <h4
+                    className={`font-semibold ${pdfConfirmed ? "text-slate-900" : "text-slate-400"}`}
+                  >
                     Data Penerbitan
                   </h4>
                   <p className="text-xs text-slate-600">
@@ -1033,7 +957,9 @@ export default function NaskahSiapTerbitPage() {
                 </div>
               </div>
 
-              <div className={`space-y-4 ${!isPdfLocked ? "opacity-50 pointer-events-none" : ""}`}>
+              <div
+                className={`space-y-4 ${!pdfConfirmed ? "opacity-50 pointer-events-none" : ""}`}
+              >
                 {/* ISBN */}
                 <div>
                   <Label htmlFor="isbn" className="text-sm font-semibold">
@@ -1043,9 +969,11 @@ export default function NaskahSiapTerbitPage() {
                     id="isbn"
                     placeholder="978-602-xxxxx-x-x"
                     value={formData.isbn}
-                    onChange={(e) => setFormData({ ...formData, isbn: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({ ...formData, isbn: e.target.value })
+                    }
                     className="mt-1.5"
-                    disabled={!isPdfLocked}
+                    disabled={!pdfConfirmed}
                   />
                   <p className="text-xs text-slate-600 mt-1">
                     Nomor ISBN yang sudah terdaftar di Perpusnas
@@ -1062,13 +990,15 @@ export default function NaskahSiapTerbitPage() {
                       <button
                         key={format.kode}
                         type="button"
-                        onClick={() => setFormData({ ...formData, formatBuku: format.kode })}
-                        disabled={!isPdfLocked}
+                        onClick={() =>
+                          setFormData({ ...formData, formatBuku: format.kode })
+                        }
+                        disabled={!pdfConfirmed}
                         className={`relative p-3 rounded-xl border-2 transition-all text-center ${
                           formData.formatBuku === format.kode
                             ? "border-teal-500 bg-teal-50 shadow-md"
                             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50"
-                        } ${!isPdfLocked ? "cursor-not-allowed" : ""}`}
+                        } ${!pdfConfirmed ? "cursor-not-allowed" : ""}`}
                       >
                         {formData.formatBuku === format.kode && (
                           <div className="absolute top-1 right-1">
@@ -1077,23 +1007,33 @@ export default function NaskahSiapTerbitPage() {
                         )}
                         <p
                           className={`font-bold text-sm ${
-                            formData.formatBuku === format.kode ? "text-teal-600" : "text-slate-900"
+                            formData.formatBuku === format.kode
+                              ? "text-teal-600"
+                              : "text-slate-900"
                           }`}
                         >
                           {format.nama}
                         </p>
-                        <p className="text-xs text-slate-600">{format.ukuran}</p>
+                        <p className="text-xs text-slate-600">
+                          {format.ukuran}
+                        </p>
                       </button>
                     ))}
                   </div>
                   <p className="text-xs text-slate-600 mt-2">
-                    {formatBukuList.find((f) => f.kode === formData.formatBuku)?.deskripsi}
+                    {
+                      formatBukuList.find((f) => f.kode === formData.formatBuku)
+                        ?.deskripsi
+                    }
                   </p>
                 </div>
 
                 {/* Jumlah Halaman */}
                 <div>
-                  <Label htmlFor="jumlahHalaman" className="text-sm font-semibold">
+                  <Label
+                    htmlFor="jumlahHalaman"
+                    className="text-sm font-semibold"
+                  >
                     Jumlah Halaman <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -1101,25 +1041,21 @@ export default function NaskahSiapTerbitPage() {
                     type="number"
                     placeholder="250"
                     value={formData.jumlahHalaman}
-                    onChange={(e) => setFormData({ ...formData, jumlahHalaman: e.target.value })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        jumlahHalaman: e.target.value,
+                      })
+                    }
                     className="mt-1.5"
                     min={1}
-                    disabled={!isPdfLocked}
+                    disabled={!pdfConfirmed}
                   />
                   <p className="text-xs text-slate-600 mt-1">
                     Jumlah halaman buku setelah layout final
                   </p>
                 </div>
               </div>
-            </div>
-
-            {/* Info */}
-            <div className="border-2 border-blue-200 bg-blue-50 rounded-lg p-4">
-              <p className="text-sm text-blue-800">
-                <strong>ℹ️ Info:</strong> Setelah diterbitkan, penulis akan mendapat notifikasi
-                untuk mengatur harga jual. Harga cetak ditentukan oleh mitra percetakan saat
-                penulis melakukan checkout.
-              </p>
             </div>
           </div>
 
@@ -1133,7 +1069,9 @@ export default function NaskahSiapTerbitPage() {
             </Button>
             <Button
               onClick={handleSubmitTerbitkan}
-              disabled={terbitkanMutation.isPending || !isPdfLocked}
+              disabled={
+                terbitkanMutation.isPending || !pdfConfirmed || !hasFinalPdf
+              }
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
             >
               {terbitkanMutation.isPending ? (
@@ -1151,91 +1089,6 @@ export default function NaskahSiapTerbitPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* ============================================ */}
-      {/* MODAL PREVIEW PDF */}
-      {/* ============================================ */}
-      <Dialog open={modalPreviewPdf} onOpenChange={setModalPreviewPdf}>
-        <DialogContent className="sm:max-w-[900px] h-[85vh]">
-          <DialogHeader>
-            <DialogTitle>Preview PDF</DialogTitle>
-            <DialogDescription>
-              Pastikan layout sudah benar sebelum dikunci
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex-1 h-full min-h-[500px]">
-            {finalPdfUrl ? (
-              <>
-                {/* Cek apakah URL adalah blob (dari upload lokal) atau URL external */}
-                {finalPdfUrl.startsWith("blob:") ? (
-                  <iframe
-                    src={finalPdfUrl}
-                    className="w-full h-full border rounded-lg"
-                    title="PDF Preview"
-                  />
-                ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50 rounded-lg border-2 border-dashed border-slate-300 p-8">
-                    <div className="text-center space-y-4">
-                      <div className="p-4 bg-blue-100 rounded-full inline-block">
-                        <FileText className="h-12 w-12 text-blue-600" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 mb-2">Preview File PDF</p>
-                        <p className="text-sm text-slate-600 mb-4">
-                          File tersimpan di server. Klik tombol di bawah untuk membuka preview.
-                        </p>
-                        <div className="flex flex-col sm:flex-row gap-2 justify-center">
-                          <Button
-                            onClick={() => {
-                              // Buat full URL jika relative
-                              const fullUrl = finalPdfUrl.startsWith("http")
-                                ? finalPdfUrl
-                                : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}${finalPdfUrl}`;
-                              window.open(fullUrl, "_blank");
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            <ExternalLink className="h-4 w-4 mr-2" />
-                            Buka Preview di Tab Baru
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              // Buat full URL jika relative
-                              const fullUrl = finalPdfUrl.startsWith("http")
-                                ? finalPdfUrl
-                                : `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}${finalPdfUrl}`;
-                              const link = document.createElement("a");
-                              link.href = fullUrl;
-                              link.download = getFileName(finalPdfUrl);
-                              link.click();
-                            }}
-                          >
-                            <Download className="h-4 w-4 mr-2" />
-                            Download File
-                          </Button>
-                        </div>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-4">
-                      URL: {finalPdfUrl.length > 60 ? finalPdfUrl.substring(0, 60) + "..." : finalPdfUrl}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-lg">
-              <p className="text-slate-600">Tidak ada file PDF untuk ditampilkan</p>
-            </div>
-          )}
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setModalPreviewPdf(false)}>
-            Tutup
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </div>
-);
+    </div>
+  );
 }

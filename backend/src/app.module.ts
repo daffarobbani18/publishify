@@ -23,9 +23,8 @@ import { KategoriModule } from './modules/kategori/kategori.module';
 import { GenreModule } from './modules/genre/genre.module';
 import { ReviewModule } from './modules/review/review.module';
 import { UploadModule } from './modules/upload/upload.module';
-import { PercetakanModule } from './modules/percetakan/percetakan.module';
-import { PembayaranModule } from './modules/pembayaran/pembayaran.module';
 import { NotifikasiModule } from './modules/notifikasi/notifikasi.module';
+import { PenerbitanModule } from './modules/penerbitan/penerbitan.module';
 
 // Common
 import { APP_FILTER, APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
@@ -91,9 +90,8 @@ import { AppController } from './app.controller';
     GenreModule,
     ReviewModule,
     UploadModule,
-    PercetakanModule,
-    PembayaranModule,
     NotifikasiModule,
+    PenerbitanModule,
   ],
   controllers: [AppController],
   providers: [

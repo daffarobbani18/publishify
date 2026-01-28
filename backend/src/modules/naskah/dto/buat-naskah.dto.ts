@@ -2,6 +2,23 @@ import { z } from 'zod';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
+ * Custom validator untuk URL atau path relatif
+ * Menerima URL lengkap (http://, https://) atau path relatif (/uploads/...)
+ */
+const urlAtauPath = (fieldName: string) =>
+  z
+    .string()
+    .refine(
+      (val) => {
+        // Terima URL lengkap atau path relatif yang dimulai dengan /
+        return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('/');
+      },
+      { message: `${fieldName} harus berupa URL valid atau path yang dimulai dengan /` },
+    )
+    .optional()
+    .nullable();
+
+/**
  * Enum untuk format/ukuran buku
  */
 export const FormatBukuEnum = z.enum(['A4', 'A5', 'B5'], {
@@ -66,31 +83,13 @@ export const BuatNaskahSchema = z.object({
     .optional()
     .nullable(),
 
-  urlSampul: z
-    .string()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        // Allow relative paths (/uploads/...) or full URLs (http://...)
-        return val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://');
-      },
-      { message: 'URL sampul harus berupa path relatif atau URL lengkap' }
-    )
-    .optional()
-    .nullable(),
+  urlSampul: urlAtauPath('URL sampul'),
 
-  urlFile: z
-    .string()
-    .refine(
-      (val) => {
-        if (!val) return true;
-        // Allow relative paths (/uploads/...) or full URLs (http://...)
-        return val.startsWith('/') || val.startsWith('http://') || val.startsWith('https://');
-      },
-      { message: 'URL file harus berupa path relatif atau URL lengkap' }
-    )
-    .optional()
-    .nullable(),
+  urlFile: urlAtauPath('URL file'),
+
+  // Konten naskah dari rich text editor (HTML)
+  // Akan dikonversi ke DOCX jika diisi
+  konten: z.string().min(100, 'Konten naskah minimal 100 karakter').optional().nullable(),
 
   publik: z.boolean().default(false).optional(),
 });

@@ -12,15 +12,15 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     // Step 1 - Login Info
     email: "",
     kataSandi: "",
     konfirmasiKataSandi: "",
     telepon: "",
-    jenisPeran: "penulis" as "penulis" | "editor" | "percetakan",
-    
+    jenisPeran: "penulis" as "penulis" | "editor",
+
     // Step 2 - Profile Info
     namaDepan: "",
     namaBelakang: "",
@@ -28,13 +28,18 @@ export default function RegisterPage() {
     bio: "",
     tanggalLahir: "",
     jenisKelamin: "",
-    
+
     // Step 3 - Address Info
     alamat: "",
     kota: "",
     provinsi: "",
     kodePos: "",
-  });  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  });
+  const handleInputChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
@@ -49,7 +54,11 @@ export default function RegisterPage() {
       hasUpperCase: /[A-Z]/.test(password),
       hasLowerCase: /[a-z]/.test(password),
       hasNumber: /\d/.test(password),
-      isValid: password.length >= 8 && /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password),
+      isValid:
+        password.length >= 8 &&
+        /[A-Z]/.test(password) &&
+        /[a-z]/.test(password) &&
+        /\d/.test(password),
     };
   }, [formData.kataSandi]);
 
@@ -93,13 +102,13 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validasi password strength sebelum submit
     if (!passwordValidation.isValid) {
       toast.error("Kata sandi harus memenuhi semua persyaratan keamanan");
       return;
     }
-    
+
     if (formData.kataSandi !== formData.konfirmasiKataSandi) {
       toast.error("Konfirmasi kata sandi tidak cocok");
       return;
@@ -121,8 +130,18 @@ export default function RegisterPage() {
       });
       toast.success("Registrasi berhasil. Silakan login.");
       router.replace("/login");
-    } catch (err: any) {
-      toast.error(err?.message || "Registrasi gagal. Coba lagi.");
+    } catch (err: unknown) {
+      // Ambil pesan error dari response backend
+      const axiosError = err as {
+        response?: { data?: { message?: string; pesan?: string } };
+        message?: string;
+      };
+      const errorMessage =
+        axiosError?.response?.data?.message ||
+        axiosError?.response?.data?.pesan ||
+        axiosError?.message ||
+        "Registrasi gagal. Coba lagi.";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -131,12 +150,13 @@ export default function RegisterPage() {
   const handleGoogleSignIn = () => {
     // Redirect ke backend OAuth endpoint
     // Gunakan NEXT_PUBLIC_BACKEND_URL (tanpa /api) untuk menghindari double /api
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:4000";
     // Pastikan tidak ada double slash
-    const cleanBackendUrl = backendUrl.replace(/\/+$/, '');
+    const cleanBackendUrl = backendUrl.replace(/\/+$/, "");
     const redirectUrl = `${cleanBackendUrl}/api/auth/google`;
-    
-    console.log('🔐 Google OAuth Redirect:', redirectUrl);
+
+    console.log("🔐 Google OAuth Redirect:", redirectUrl);
     window.location.href = redirectUrl;
   };
 
@@ -155,36 +175,54 @@ export default function RegisterPage() {
           Bergabung dengan Publishify dan mulai perjalanan Anda menjadi penulis
           profesional
         </p>
-        
+
         {/* Progress Indicator */}
         <div className="space-y-3 pt-8">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-              step >= 1 ? "bg-[#14b8a6] text-white" : "bg-gray-200 text-gray-500"
-            }`}>
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                step >= 1
+                  ? "bg-[#14b8a6] text-white"
+                  : "bg-gray-200 text-gray-500"
+              }`}
+            >
               1
             </div>
-            <div className={`text-sm font-medium ${step >= 1 ? "text-[#14b8a6]" : "text-gray-500"}`}>
+            <div
+              className={`text-sm font-medium ${step >= 1 ? "text-[#14b8a6]" : "text-gray-500"}`}
+            >
               Informasi Akun
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-              step >= 2 ? "bg-[#14b8a6] text-white" : "bg-gray-200 text-gray-500"
-            }`}>
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                step >= 2
+                  ? "bg-[#14b8a6] text-white"
+                  : "bg-gray-200 text-gray-500"
+              }`}
+            >
               2
             </div>
-            <div className={`text-sm font-medium ${step >= 2 ? "text-[#14b8a6]" : "text-gray-500"}`}>
+            <div
+              className={`text-sm font-medium ${step >= 2 ? "text-[#14b8a6]" : "text-gray-500"}`}
+            >
               Profil Pribadi
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-              step >= 3 ? "bg-[#14b8a6] text-white" : "bg-gray-200 text-gray-500"
-            }`}>
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                step >= 3
+                  ? "bg-[#14b8a6] text-white"
+                  : "bg-gray-200 text-gray-500"
+              }`}
+            >
               3
             </div>
-            <div className={`text-sm font-medium ${step >= 3 ? "text-[#14b8a6]" : "text-gray-500"}`}>
+            <div
+              className={`text-sm font-medium ${step >= 3 ? "text-[#14b8a6]" : "text-gray-500"}`}
+            >
               Alamat Lengkap
             </div>
           </div>
@@ -210,13 +248,20 @@ export default function RegisterPage() {
             Buat Akun Publishify
           </h2>
           <p className="text-gray-600">
-            Langkah {step} dari 3 - {step === 1 ? "Informasi Akun" : step === 2 ? "Profil Pribadi" : "Alamat Lengkap"}
+            Langkah {step} dari 3 -{" "}
+            {step === 1
+              ? "Informasi Akun"
+              : step === 2
+                ? "Profil Pribadi"
+                : "Alamat Lengkap"}
           </p>
         </div>
 
         {/* Registration Form */}
-        <form onSubmit={step === 3 ? handleSubmit : handleNextStep} className="space-y-4">
-          
+        <form
+          onSubmit={step === 3 ? handleSubmit : handleNextStep}
+          className="space-y-4"
+        >
           {/* STEP 1: Account Information */}
           {step === 1 && (
             <div className="space-y-4 animate-fade-in">
@@ -266,7 +311,6 @@ export default function RegisterPage() {
                 >
                   <option value="penulis">Penulis</option>
                   <option value="editor">Editor</option>
-                  <option value="percetakan">Percetakan</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
                   Pilih peran yang sesuai dengan kebutuhan Anda
@@ -295,13 +339,38 @@ export default function RegisterPage() {
                     className="absolute inset-y-0 right-0 pr-4 flex items-center"
                   >
                     {showPassword ? (
-                      <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      <svg
+                        className="w-5 h-5 text-gray-400 hover:text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                        />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <svg
+                        className="w-5 h-5 text-gray-400 hover:text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
                       </svg>
                     )}
                   </button>
@@ -318,53 +387,113 @@ export default function RegisterPage() {
                           style={{ width: `${(passwordStrength / 4) * 100}%` }}
                         />
                       </div>
-                      <span className={`text-xs font-medium ${
-                        passwordStrength <= 2 ? "text-red-600" :
-                        passwordStrength === 3 ? "text-yellow-600" :
-                        "text-green-600"
-                      }`}>
+                      <span
+                        className={`text-xs font-medium ${
+                          passwordStrength <= 2
+                            ? "text-red-600"
+                            : passwordStrength === 3
+                              ? "text-yellow-600"
+                              : "text-green-600"
+                        }`}
+                      >
                         {getPasswordStrengthText()}
                       </span>
                     </div>
 
                     {/* Requirements Checklist */}
                     <div className="space-y-1 text-xs">
-                      <div className={`flex items-center gap-2 ${passwordValidation.minLength ? "text-green-600" : "text-gray-500"}`}>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <div
+                        className={`flex items-center gap-2 ${passwordValidation.minLength ? "text-green-600" : "text-gray-500"}`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           {passwordValidation.minLength ? (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
                           ) : (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
                           )}
                         </svg>
                         <span>Minimal 8 karakter</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${passwordValidation.hasUpperCase ? "text-green-600" : "text-gray-500"}`}>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <div
+                        className={`flex items-center gap-2 ${passwordValidation.hasUpperCase ? "text-green-600" : "text-gray-500"}`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           {passwordValidation.hasUpperCase ? (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
                           ) : (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
                           )}
                         </svg>
                         <span>Mengandung huruf besar (A-Z)</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${passwordValidation.hasLowerCase ? "text-green-600" : "text-gray-500"}`}>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <div
+                        className={`flex items-center gap-2 ${passwordValidation.hasLowerCase ? "text-green-600" : "text-gray-500"}`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           {passwordValidation.hasLowerCase ? (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
                           ) : (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
                           )}
                         </svg>
                         <span>Mengandung huruf kecil (a-z)</span>
                       </div>
-                      <div className={`flex items-center gap-2 ${passwordValidation.hasNumber ? "text-green-600" : "text-gray-500"}`}>
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                      <div
+                        className={`flex items-center gap-2 ${passwordValidation.hasNumber ? "text-green-600" : "text-gray-500"}`}
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           {passwordValidation.hasNumber ? (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
                           ) : (
-                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                              clipRule="evenodd"
+                            />
                           )}
                         </svg>
                         <span>Mengandung angka (0-9)</span>
@@ -395,13 +524,38 @@ export default function RegisterPage() {
                     className="absolute inset-y-0 right-0 pr-4 flex items-center"
                   >
                     {showConfirmPassword ? (
-                      <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                      <svg
+                        className="w-5 h-5 text-gray-400 hover:text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                        />
                       </svg>
                     ) : (
-                      <svg className="w-5 h-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      <svg
+                        className="w-5 h-5 text-gray-400 hover:text-gray-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
                       </svg>
                     )}
                   </button>

@@ -33,11 +33,20 @@ import { naskahApi } from "@/lib/api/naskah";
 import { getSampulUrl, getFileNaskahUrl } from "@/lib/utils/url";
 
 // Placeholder halaman detail buku terbit
-export default function DetailBukuTerbitPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+export default function DetailBukuTerbitPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [buku, setBuku] = useState<any>(null);
+  const [id, setId] = useState<string | null>(null);
+
+  // Unwrap params Promise
+  useEffect(() => {
+    params.then((p) => setId(p.id));
+  }, [params]);
 
   // Fetch data buku dari API
   useEffect(() => {
@@ -47,7 +56,7 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
       try {
         const res = await naskahApi.ambilNaskahById(id);
         const naskahData = res.data;
-        
+
         // Validasi bahwa naskah sudah diterbitkan
         if (naskahData.status !== "diterbitkan") {
           toast.error("Buku ini belum diterbitkan");
@@ -62,7 +71,10 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
           subJudul: naskahData.subJudul,
           kategori: naskahData.kategori?.nama || "-",
           genre: naskahData.genre?.nama || "-",
-          penulis: naskahData.penulis?.profilPengguna?.namaTampilan || naskahData.penulis?.email || "-",
+          penulis:
+            naskahData.penulis?.profilPengguna?.namaTampilan ||
+            naskahData.penulis?.email ||
+            "-",
           tanggalTerbit: naskahData.diterbitkanPada || naskahData.dibuatPada,
           isbn: naskahData.isbn || "-",
           sinopsis: naskahData.sinopsis,
@@ -87,6 +99,18 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
     fetchBuku();
   }, [id, router]);
 
+  // Loading state jika ID belum tersedia
+  if (!id) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-slate-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <Skeleton className="h-12 w-64 mb-6" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </div>
+    );
+  }
+
   const handleShare = () => {
     if (buku?.halamanPublik) {
       navigator.clipboard.writeText(buku.halamanPublik);
@@ -98,8 +122,20 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
     <div className="min-h-screen w-full bg-transparent overflow-x-hidden relative">
       {/* Background pola SVG */}
       <div className="absolute inset-0 -z-10 pointer-events-none">
-        <svg width="100%" height="100%" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full opacity-10">
-          <pattern id="polaPublishify" patternUnits="userSpaceOnUse" width="40" height="40">
+        <svg
+          width="100%"
+          height="100%"
+          viewBox="0 0 100 100"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-full opacity-10"
+        >
+          <pattern
+            id="polaPublishify"
+            patternUnits="userSpaceOnUse"
+            width="40"
+            height="40"
+          >
             <rect x="0" y="0" width="40" height="40" fill="white" />
             <path d="M0 20h40M20 0v40" stroke="#0d7377" strokeWidth="0.5" />
           </pattern>
@@ -125,7 +161,9 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
                 <span className="text-3xl sm:text-4xl md:text-5xl">📚</span>
                 Detail Buku Terbit
               </h1>
-              <p className="text-base sm:text-lg text-teal-50">Informasi lengkap dan riwayat buku yang sudah diterbitkan</p>
+              <p className="text-base sm:text-lg text-teal-50">
+                Informasi lengkap dan riwayat buku yang sudah diterbitkan
+              </p>
             </div>
             <div className="flex-shrink-0 hidden lg:block ml-8">
               <div className="w-14 h-14 sm:w-20 sm:h-20 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
@@ -136,7 +174,12 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
         </motion.div>
 
         {/* Tombol Kembali */}
-        <Button variant="outline" size="icon" onClick={() => router.back()} className="border-slate-200 bg-white hover:bg-slate-50">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => router.back()}
+          className="border-slate-200 bg-white hover:bg-slate-50"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
 
@@ -151,7 +194,11 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
             {/* Kolom Kiri - Info Buku */}
             <div className="lg:col-span-2 space-y-6">
               {/* Informasi Buku */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
                 <Card className="shadow-md border-slate-200">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -165,48 +212,79 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Diterbitkan
                       </Badge>
-                      <span className="text-sm text-slate-500">ID: {buku.id}</span>
+                      <span className="text-sm text-slate-500">
+                        ID: {buku.id}
+                      </span>
                     </div>
 
-                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">{buku.judul}</h2>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">
+                      {buku.judul}
+                    </h2>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-700"><span className="font-medium">Penulis:</span> {buku.penulis}</span>
+                        <span className="text-slate-700">
+                          <span className="font-medium">Penulis:</span>{" "}
+                          {buku.penulis}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-700"><span className="font-medium">Terbit:</span> {format(new Date(buku.tanggalTerbit), "d MMMM yyyy", { locale: localeId })}</span>
+                        <span className="text-slate-700">
+                          <span className="font-medium">Terbit:</span>{" "}
+                          {format(new Date(buku.tanggalTerbit), "d MMMM yyyy", {
+                            locale: localeId,
+                          })}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Tag className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-700"><span className="font-medium">Kategori:</span> {buku.kategori}</span>
+                        <span className="text-slate-700">
+                          <span className="font-medium">Kategori:</span>{" "}
+                          {buku.kategori}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <BookOpen className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-700"><span className="font-medium">Genre:</span> {buku.genre}</span>
+                        <span className="text-slate-700">
+                          <span className="font-medium">Genre:</span>{" "}
+                          {buku.genre}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-700"><span className="font-medium">Halaman:</span> {buku.jumlahHalaman}</span>
+                        <span className="text-slate-700">
+                          <span className="font-medium">Halaman:</span>{" "}
+                          {buku.jumlahHalaman}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                        <span className="text-slate-700"><span className="font-medium">ISBN:</span> {buku.isbn}</span>
+                        <span className="text-slate-700">
+                          <span className="font-medium">ISBN:</span> {buku.isbn}
+                        </span>
                       </div>
                     </div>
 
                     <div className="bg-slate-50 border border-slate-100 rounded-lg p-4">
-                      <h3 className="font-semibold text-slate-800 mb-2">Sinopsis</h3>
-                      <p className="text-slate-700 text-sm leading-relaxed">{buku.sinopsis}</p>
+                      <h3 className="font-semibold text-slate-800 mb-2">
+                        Sinopsis
+                      </h3>
+                      <p className="text-slate-700 text-sm leading-relaxed">
+                        {buku.sinopsis}
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
 
               {/* Riwayat Cetak */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
                 <Card className="shadow-md border-slate-200">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -218,7 +296,10 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
                     {buku.riwayatCetak && buku.riwayatCetak.length > 0 ? (
                       <div className="space-y-3">
                         {buku.riwayatCetak.map((cetak: any, idx: number) => (
-                          <div key={idx} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg hover:bg-slate-100 transition">
+                          <div
+                            key={idx}
+                            className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-lg hover:bg-slate-100 transition"
+                          >
                             <div className="flex items-center gap-3">
                               <div className="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center">
                                 {cetak.jenis === "Fisik" ? (
@@ -228,16 +309,26 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
                                 )}
                               </div>
                               <div>
-                                <div className="font-medium text-slate-900">Cetak {cetak.jenis}</div>
+                                <div className="font-medium text-slate-900">
+                                  Cetak {cetak.jenis}
+                                </div>
                                 <div className="text-sm text-slate-600 flex items-center gap-2">
                                   <Clock className="h-3 w-3" />
-                                  {format(new Date(cetak.tanggal), "d MMM yyyy", { locale: localeId })}
+                                  {format(
+                                    new Date(cetak.tanggal),
+                                    "d MMM yyyy",
+                                    { locale: localeId },
+                                  )}
                                 </div>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="font-semibold text-slate-900">{cetak.jumlah} eksemplar</div>
-                              <Badge variant="outline" className="text-xs">{cetak.status}</Badge>
+                              <div className="font-semibold text-slate-900">
+                                {cetak.jumlah} eksemplar
+                              </div>
+                              <Badge variant="outline" className="text-xs">
+                                {cetak.status}
+                              </Badge>
                             </div>
                           </div>
                         ))}
@@ -256,7 +347,11 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
             {/* Kolom Kanan - Aksi & Tautan */}
             <div className="space-y-6">
               {/* Aksi Cepat */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
                 <Card className="shadow-md border-slate-200">
                   <CardHeader>
                     <CardTitle className="text-lg">Aksi Cepat</CardTitle>
@@ -278,7 +373,9 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
                       Bagikan Link
                     </Button>
                     <Button
-                      onClick={() => router.push(`/penulis/buku-terbit/${id}/cetak`)}
+                      onClick={() =>
+                        router.push(`/penulis/buku-terbit/${id}/cetak`)
+                      }
                       variant="outline"
                       className="w-full border-slate-300"
                     >
@@ -297,7 +394,11 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
               </motion.div>
 
               {/* Tautan Publik */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
                 <Card className="shadow-md border-slate-200">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -318,7 +419,8 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
                       </a>
                     </div>
                     <p className="text-xs text-slate-500 mt-3">
-                      Bagikan link ini kepada pembaca untuk melihat detail buku Anda
+                      Bagikan link ini kepada pembaca untuk melihat detail buku
+                      Anda
                     </p>
                   </CardContent>
                 </Card>
@@ -326,7 +428,11 @@ export default function DetailBukuTerbitPage({ params }: { params: { id: string 
 
               {/* Sampul Buku */}
               {buku.urlSampul && (
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
                   <Card className="shadow-md border-slate-200">
                     <CardHeader>
                       <CardTitle className="text-lg">Sampul Buku</CardTitle>

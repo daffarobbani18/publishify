@@ -8,9 +8,12 @@ interface SelectContextValue {
   onValueChange: (value: string) => void;
   open: boolean;
   setOpen: (open: boolean) => void;
+  disabled?: boolean;
 }
 
-const SelectContext = React.createContext<SelectContextValue | undefined>(undefined);
+const SelectContext = React.createContext<SelectContextValue | undefined>(
+  undefined,
+);
 
 const useSelect = () => {
   const context = React.useContext(SelectContext);
@@ -24,13 +27,16 @@ interface SelectProps {
   value: string;
   onValueChange: (value: string) => void;
   children: React.ReactNode;
+  disabled?: boolean;
 }
 
-const Select = ({ value, onValueChange, children }: SelectProps) => {
+const Select = ({ value, onValueChange, children, disabled }: SelectProps) => {
   const [open, setOpen] = React.useState(false);
 
   return (
-    <SelectContext.Provider value={{ value, onValueChange, open, setOpen }}>
+    <SelectContext.Provider
+      value={{ value, onValueChange, open, setOpen, disabled }}
+    >
       <div className="relative">{children}</div>
     </SelectContext.Provider>
   );
@@ -42,13 +48,14 @@ interface SelectTriggerProps {
 }
 
 const SelectTrigger = ({ className = "", children }: SelectTriggerProps) => {
-  const { open, setOpen } = useSelect();
+  const { open, setOpen, disabled } = useSelect();
 
   return (
     <button
       type="button"
+      disabled={disabled}
       className={`flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      onClick={() => setOpen(!open)}
+      onClick={() => !disabled && setOpen(!open)}
     >
       {children}
       <ChevronDown className="h-4 w-4 opacity-50" />
@@ -62,7 +69,9 @@ interface SelectValueProps {
 
 const SelectValue = ({ placeholder }: SelectValueProps) => {
   const { value } = useSelect();
-  return <span className={value ? "" : "text-gray-500"}>{value || placeholder}</span>;
+  return (
+    <span className={value ? "" : "text-gray-500"}>{value || placeholder}</span>
+  );
 };
 
 interface SelectContentProps {

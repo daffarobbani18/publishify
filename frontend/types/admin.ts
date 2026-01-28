@@ -3,15 +3,15 @@
  * Termasuk terbitkan naskah, kelola pengguna, dll
  */
 
-// Status Naskah
-export type StatusNaskah = 
-  | 'draft'
-  | 'diajukan'
-  | 'dalam_review'
-  | 'perlu_revisi'
-  | 'disetujui'
-  | 'diterbitkan'
-  | 'ditolak';
+// Status Naskah - 5 Tahap Penerbitan
+export type StatusNaskah =
+  | "draft" // Draft awal
+  | "diajukan" // 1. Submit
+  | "dalam_review" // 2. Review
+  | "dalam_editing" // 3. Editing
+  | "siap_terbit" // 4. Siap Terbit
+  | "diterbitkan" // 5. Terbit
+  | "ditolak"; // Ditolak
 
 // ============= NASKAH =============
 
@@ -36,7 +36,7 @@ export interface Naskah {
   diterbitkanPada?: string | Date;
   dibuatPada: string | Date;
   diperbaruiPada: string | Date;
-  
+
   // Relations
   penulis?: {
     id: string;

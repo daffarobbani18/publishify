@@ -27,7 +27,11 @@ interface UserHeaderProps {
  * Menampilkan nama user dan button logout
  * Konsisten dengan design system teal/cyan gradient
  */
-export function UserHeader({ userName, userRole, className = "" }: UserHeaderProps) {
+export function UserHeader({
+  userName,
+  userRole,
+  className = "",
+}: UserHeaderProps) {
   const router = useRouter();
   const { pengguna, logout } = useAuthStore();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -39,20 +43,21 @@ export function UserHeader({ userName, userRole, className = "" }: UserHeaderPro
   };
 
   // Default values dari auth store jika tidak disediakan
-  const displayName = userName || pengguna?.profilPengguna?.namaTampilan || 
-                      `${pengguna?.profilPengguna?.namaDepan || ''} ${pengguna?.profilPengguna?.namaBelakang || ''}`.trim() ||
-                      pengguna?.email?.split('@')[0] || 
-                      "Pengguna";
-  
-  const displayRole = (userRole || 
-    (Array.isArray(pengguna?.peran) ? pengguna?.peran[0] : pengguna?.peran) || 
-    "penulis") as "penulis" | "editor" | "percetakan" | "admin";
+  const displayName =
+    userName ||
+    pengguna?.profilPengguna?.namaTampilan ||
+    `${pengguna?.profilPengguna?.namaDepan || ""} ${pengguna?.profilPengguna?.namaBelakang || ""}`.trim() ||
+    pengguna?.email?.split("@")[0] ||
+    "Pengguna";
+
+  const displayRole = (userRole ||
+    (Array.isArray(pengguna?.peran) ? pengguna?.peran[0] : pengguna?.peran) ||
+    "penulis") as "penulis" | "editor" | "admin";
 
   // Role labels
-  const roleLabels: Record<"penulis" | "editor" | "percetakan" | "admin", string> = {
+  const roleLabels: Record<"penulis" | "editor" | "admin", string> = {
     penulis: "Penulis",
     editor: "Editor",
-    percetakan: "Percetakan",
     admin: "Administrator",
   };
 
@@ -162,7 +167,8 @@ export function UserHeader({ userName, userRole, className = "" }: UserHeaderPro
                 Yakin ingin keluar?
               </h2>
               <p className="text-gray-600">
-                Sesi Anda akan berakhir dan Anda harus login kembali untuk mengakses dashboard.
+                Sesi Anda akan berakhir dan Anda harus login kembali untuk
+                mengakses dashboard.
               </p>
             </div>
             <div className="flex gap-3">

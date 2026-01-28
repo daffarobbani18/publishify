@@ -433,4 +433,287 @@ export class EmailService {
       </html>
     `;
   }
+
+  /**
+   * Kirim email notifikasi perubahan status naskah
+   */
+  async kirimEmailStatusNaskah(data: {
+    emailPenerima: string;
+    namaPenerima: string;
+    judulNaskah: string;
+    statusBaru: string;
+    statusLama: string;
+  }) {
+    try {
+      if (!this.transporter) {
+        this.logger.warn('⚠️ Email transporter tidak tersedia. Skip sending email.');
+        return { sukses: false, pesan: 'Email service tidak tersedia' };
+      }
+
+      const emailFrom = this.configService.get<string>('email.from');
+      const { subject, emoji, headerColor, message, ctaText, ctaUrl } = this.getStatusEmailConfig(
+        data.statusBaru,
+      );
+
+      const htmlContent = this.getTemplateStatusNaskah({
+        ...data,
+        subject,
+        emoji,
+        headerColor,
+        message,
+        ctaText,
+        ctaUrl,
+      });
+
+      const info = await this.transporter.sendMail({
+        from: emailFrom,
+        to: data.emailPenerima,
+        subject: `${emoji} ${subject} - "${data.judulNaskah}"`,
+        html: htmlContent,
+      });
+
+      this.logger.log(`✅ Email status naskah terkirim ke: ${data.emailPenerima}`);
+
+      return {
+        sukses: true,
+        pesan: 'Email berhasil dikirim',
+        data: { messageId: info.messageId },
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Gagal mengirim email status naskah: ${errorMessage}`);
+      return {
+        sukses: false,
+        pesan: `Gagal mengirim email: ${errorMessage}`,
+      };
+    }
+  }
+
+  /**
+   * Konfigurasi email berdasarkan status naskah
+   */
+  private getStatusEmailConfig(status: string) {
+    const frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+
+    const configs: Record<
+      string,
+      {
+        subject: string;
+        emoji: string;
+        headerColor: string;
+        message: string;
+        ctaText: string;
+        ctaUrl: string;
+      }
+    > = {
+      dalam_review: {
+        subject: 'Naskah Sedang Direview',
+        emoji: '🔍',
+        headerColor: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+        message:
+          'Naskah Anda telah diterima dan sedang dalam proses review oleh tim editor kami. Kami akan menghubungi Anda setelah proses review selesai.',
+        ctaText: 'Lihat Status Naskah',
+        ctaUrl: `${frontendUrl}/penulis/draf`,
+      },
+      dalam_editing: {
+        subject: 'Naskah Masuk Tahap Editing',
+        emoji: '✏️',
+        headerColor: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+        message:
+          'Selamat! Naskah Anda telah lolos review dan sekarang masuk tahap editing. Tim editor kami akan menyempurnakan naskah Anda untuk persiapan penerbitan.',
+        ctaText: 'Lihat Progress',
+        ctaUrl: `${frontendUrl}/penulis/draf`,
+      },
+      siap_terbit: {
+        subject: 'Naskah Siap Diterbitkan!',
+        emoji: '📋',
+        headerColor: 'linear-gradient(135deg, #14b8a6 0%, #0d9488 100%)',
+        message:
+          'Naskah Anda telah selesai diedit dan siap untuk diterbitkan! Silakan lengkapi dokumen-dokumen yang diperlukan (Surat Perjanjian, Surat Keaslian, Proposal, dan Bukti Transfer) untuk melanjutkan proses penerbitan.',
+        ctaText: 'Lengkapi Dokumen',
+        ctaUrl: `${frontendUrl}/penulis/draf`,
+      },
+      diterbitkan: {
+        subject: 'Selamat! Naskah Telah Diterbitkan',
+        emoji: '🎉',
+        headerColor: 'linear-gradient(135deg, #a855f7 0%, #7c3aed 100%)',
+        message:
+          'Selamat! Naskah Anda telah resmi diterbitkan dan kini tersedia di katalog Publishify. Anda dapat mulai menjual buku Anda kepada pembaca.',
+        ctaText: 'Lihat Buku Saya',
+        ctaUrl: `${frontendUrl}/penulis/buku-terbit`,
+      },
+      ditolak: {
+        subject: 'Pemberitahuan Status Naskah',
+        emoji: '📝',
+        headerColor: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+        message:
+          'Mohon maaf, setelah melalui proses review, naskah Anda belum dapat kami terbitkan saat ini. Anda dapat memperbaiki naskah dan mengajukan kembali.',
+        ctaText: 'Revisi Naskah',
+        ctaUrl: `${frontendUrl}/penulis/draf`,
+      },
+      diajukan: {
+        subject: 'Naskah Berhasil Diajukan',
+        emoji: '📤',
+        headerColor: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+        message:
+          'Naskah Anda telah berhasil diajukan untuk review. Tim kami akan segera memeriksa naskah Anda.',
+        ctaText: 'Lihat Status',
+        ctaUrl: `${frontendUrl}/penulis/draf`,
+      },
+    };
+
+    return (
+      configs[status] || {
+        subject: 'Update Status Naskah',
+        emoji: '📚',
+        headerColor: 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
+        message: `Status naskah Anda telah diperbarui menjadi: ${status}`,
+        ctaText: 'Lihat Detail',
+        ctaUrl: `${frontendUrl}/penulis/draf`,
+      }
+    );
+  }
+
+  /**
+   * Template HTML untuk email status naskah
+   */
+  private getTemplateStatusNaskah(data: {
+    namaPenerima: string;
+    judulNaskah: string;
+    statusBaru: string;
+    statusLama: string;
+    subject: string;
+    emoji: string;
+    headerColor: string;
+    message: string;
+    ctaText: string;
+    ctaUrl: string;
+  }): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${data.subject}</title>
+        <style>
+          body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+          }
+          .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          }
+          .header {
+            background: ${data.headerColor};
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+          }
+          .content {
+            padding: 30px 25px;
+          }
+          .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            margin: 10px 0;
+          }
+          .book-info {
+            background-color: #f8fafc;
+            border-left: 4px solid #6366f1;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+          }
+          .book-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin: 0;
+          }
+          .cta-button {
+            display: inline-block;
+            background: ${data.headerColor};
+            color: white !important;
+            padding: 14px 32px;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 25px 0;
+            font-weight: bold;
+            font-size: 16px;
+          }
+          .footer {
+            background-color: #f8f9fa;
+            padding: 25px;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+          }
+          .emoji {
+            font-size: 56px;
+            margin: 15px 0;
+          }
+          .message-box {
+            background-color: #fefefe;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            margin: 20px 0;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="emoji">${data.emoji}</div>
+            <h1>${data.subject}</h1>
+          </div>
+          
+          <div class="content">
+            <p>Halo <strong>${data.namaPenerima}</strong>,</p>
+            
+            <div class="book-info">
+              <p class="book-title">📖 ${data.judulNaskah}</p>
+            </div>
+            
+            <div class="message-box">
+              <p>${data.message}</p>
+            </div>
+            
+            <center>
+              <a href="${data.ctaUrl}" class="cta-button">
+                ${data.ctaText}
+              </a>
+            </center>
+            
+            <p style="margin-top: 30px;">Jika ada pertanyaan, jangan ragu untuk menghubungi tim support kami.</p>
+            
+            <p>Salam hangat,<br><strong>Tim Publishify</strong></p>
+          </div>
+          
+          <div class="footer">
+            <p>&copy; 2025 Publishify. Semua hak dilindungi.</p>
+            <p>Email ini dikirim otomatis, mohon tidak membalas email ini.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
 }

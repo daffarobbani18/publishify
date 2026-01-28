@@ -28,6 +28,12 @@ export function HeaderNavigasi() {
           {/* Desktop Navigation - Minimalis */}
           <div className="hidden md:flex items-center gap-8">
             <Link
+              href="/katalog"
+              className="text-gray-600 hover:text-[#0d7377] transition-all duration-300 font-medium"
+            >
+              Katalog
+            </Link>
+            <Link
               href="#fitur"
               className="text-gray-600 hover:text-[#0d7377] transition-all duration-300 font-medium"
             >
@@ -92,6 +98,13 @@ export function HeaderNavigasi() {
         {menuTerbuka && (
           <div className="md:hidden py-4 border-t border-gray-100">
             <div className="flex flex-col gap-4">
+              <Link
+                href="/katalog"
+                className="text-gray-600 hover:text-[#0d7377] transition-colors font-medium"
+                onClick={() => setMenuTerbuka(false)}
+              >
+                Katalog
+              </Link>
               <Link
                 href="#fitur"
                 className="text-gray-600 hover:text-[#0d7377] transition-colors font-medium"

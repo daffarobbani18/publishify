@@ -5,6 +5,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { naskahApi } from "@/lib/api/naskah";
 
+import {
+  STATUS_NASKAH,
+  type StatusNaskah,
+} from "@/lib/constants/status-naskah";
+
 // Gunakan type any untuk menghindari konflik tipe
 type NaskahWithRelations = any;
 
@@ -22,17 +27,17 @@ export default function AdminNaskahPage() {
   const fetchDaftarNaskah = async () => {
     try {
       setSedangMemuat(true);
-      
+
       // Ambil semua naskah
       const response = await naskahApi.ambilSemuaNaskah();
-      
+
       let naskah = response.data || [];
-      
+
       // Filter berdasarkan status
       if (filter !== "semua") {
         naskah = naskah.filter((n) => n.status === filter);
       }
-      
+
       setDaftarNaskah(naskah);
     } catch (error: any) {
       console.error("Error fetching naskah:", error);
@@ -48,29 +53,16 @@ export default function AdminNaskahPage() {
   };
 
   const getLabelStatus = (status: string) => {
-    const labels: Record<string, string> = {
-      draft: "Draft",
-      diajukan: "Diajukan",
-      dalam_review: "Dalam Review",
-      perlu_revisi: "Perlu Revisi",
-      disetujui: "Disetujui",
-      ditolak: "Ditolak",
-      diterbitkan: "Diterbitkan",
-    };
-    return labels[status] || status;
+    const s = status as StatusNaskah;
+    return STATUS_NASKAH[s]?.label || status;
   };
 
   const getWarnaBadgeStatus = (status: string) => {
-    const colors: Record<string, string> = {
-      draft: "bg-gray-100 text-gray-800",
-      diajukan: "bg-yellow-100 text-yellow-800",
-      dalam_review: "bg-blue-100 text-blue-800",
-      perlu_revisi: "bg-orange-100 text-orange-800",
-      disetujui: "bg-green-100 text-green-800",
-      ditolak: "bg-red-100 text-red-800",
-      diterbitkan: "bg-purple-100 text-purple-800",
-    };
-    return colors[status] || "bg-gray-100 text-gray-800";
+    const s = status as StatusNaskah;
+    const config = STATUS_NASKAH[s];
+    return config
+      ? `${config.warnaBg} ${config.warnaTeks}`
+      : "bg-gray-100 text-gray-800";
   };
 
   const getLabelRekomendasi = (rekomendasi?: string) => {
@@ -105,7 +97,8 @@ export default function AdminNaskahPage() {
   const naskahTerfilter = daftarNaskah.filter((naskah) => {
     if (!pencarian) return true;
     const query = pencarian.toLowerCase();
-    const namaPenulis = `${naskah.penulis?.profilPengguna?.namaDepan || ""} ${naskah.penulis?.profilPengguna?.namaBelakang || ""}`.trim();
+    const namaPenulis =
+      `${naskah.penulis?.profilPengguna?.namaDepan || ""} ${naskah.penulis?.profilPengguna?.namaBelakang || ""}`.trim();
     return (
       naskah.judul?.toLowerCase().includes(query) ||
       naskah.sinopsis?.toLowerCase().includes(query) ||
@@ -119,7 +112,10 @@ export default function AdminNaskahPage() {
     draft: daftarNaskah.filter((n) => n.status === "draft").length,
     diajukan: daftarNaskah.filter((n) => n.status === "diajukan").length,
     dalamReview: daftarNaskah.filter((n) => n.status === "dalam_review").length,
-    disetujui: daftarNaskah.filter((n) => n.status === "disetujui").length,
+    dalamEditing: daftarNaskah.filter((n) => n.status === "dalam_editing")
+      .length,
+    siapTerbit: daftarNaskah.filter((n) => n.status === "siap_terbit").length,
+    disetujui: daftarNaskah.filter((n) => n.status === "disetujui").length, // Legacy? status 'disetujui' might be replaced by flow
     ditolak: daftarNaskah.filter((n) => n.status === "ditolak").length,
     diterbitkan: daftarNaskah.filter((n) => n.status === "diterbitkan").length,
   };
@@ -137,8 +133,7 @@ export default function AdminNaskahPage() {
           </p>
         </div>
 
-        {/* Statistik Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-8 gap-4 mb-8">
           <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
             <div className="text-center">
               <p className="text-xs text-gray-600 mb-1">Total</p>
@@ -177,9 +172,18 @@ export default function AdminNaskahPage() {
 
           <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
             <div className="text-center">
-              <p className="text-xs text-gray-600 mb-1">Disetujui</p>
-              <p className="text-2xl font-bold text-green-600">
-                {statistik.disetujui}
+              <p className="text-xs text-gray-600 mb-1">Editing</p>
+              <p className="text-2xl font-bold text-indigo-600">
+                {statistik.dalamEditing}
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-md p-4 border border-gray-100">
+            <div className="text-center">
+              <p className="text-xs text-gray-600 mb-1">Siap</p>
+              <p className="text-2xl font-bold text-teal-600">
+                {statistik.siapTerbit}
               </p>
             </div>
           </div>
@@ -238,14 +242,24 @@ export default function AdminNaskahPage() {
               Review ({statistik.dalamReview})
             </button>
             <button
-              onClick={() => setFilter("disetujui")}
+              onClick={() => setFilter("dalam_editing")}
               className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                filter === "disetujui"
-                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"
+                filter === "dalam_editing"
+                  ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              Disetujui ({statistik.disetujui})
+              Editing ({statistik.dalamEditing})
+            </button>
+            <button
+              onClick={() => setFilter("siap_terbit")}
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                filter === "siap_terbit"
+                  ? "bg-gradient-to-r from-teal-500 to-teal-600 text-white shadow-md"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+              }`}
+            >
+              Siap ({statistik.siapTerbit})
             </button>
             <button
               onClick={() => setFilter("ditolak")}
@@ -335,8 +349,8 @@ export default function AdminNaskahPage() {
                           {pencarian
                             ? `Tidak ada hasil untuk "${pencarian}"`
                             : filter === "semua"
-                            ? "Belum ada naskah yang dibuat"
-                            : `Tidak ada naskah dengan status "${getLabelStatus(filter)}"`}
+                              ? "Belum ada naskah yang dibuat"
+                              : `Tidak ada naskah dengan status "${getLabelStatus(filter)}"`}
                         </p>
                       </div>
                     </td>
@@ -370,17 +384,19 @@ export default function AdminNaskahPage() {
                       <td className="px-6 py-4">
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${getWarnaBadgeStatus(
-                            naskah.status
+                            naskah.status,
                           )}`}
                         >
                           {getLabelStatus(naskah.status)}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        {naskah.review && naskah.review.length > 0 && naskah.review[0].rekomendasi ? (
+                        {naskah.review &&
+                        naskah.review.length > 0 &&
+                        naskah.review[0].rekomendasi ? (
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-medium ${getWarnaBadgeRekomendasi(
-                              naskah.review[0].rekomendasi
+                              naskah.review[0].rekomendasi,
                             )}`}
                           >
                             {getLabelRekomendasi(naskah.review[0].rekomendasi)}

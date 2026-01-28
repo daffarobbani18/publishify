@@ -26,9 +26,9 @@ export function ProsesPenerbitanSection() {
     },
     {
       nomor: "04",
-      judul: "Persetujuan & Cetak",
+      judul: "Persetujuan & Terbit",
       deskripsi:
-        "Setelah disetujui, pilih paket percetakan dan terbitkan buku Anda.",
+        "Setelah disetujui, naskah Anda akan diterbitkan secara digital dan tersedia untuk pembaca.",
     },
   ];
 
@@ -44,7 +44,9 @@ export function ProsesPenerbitanSection() {
         {/* Section Header */}
         <div className="text-center mb-20">
           <div className="inline-block mb-4">
-            <span className="text-[#14b8a6] font-semibold text-sm uppercase tracking-wider">Cara Kerja</span>
+            <span className="text-[#14b8a6] font-semibold text-sm uppercase tracking-wider">
+              Cara Kerja
+            </span>
           </div>
           <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-6">
             Proses Penerbitan yang <span className="text-[#14b8a6]">Mudah</span>
@@ -57,8 +59,8 @@ export function ProsesPenerbitanSection() {
         {/* Process Steps */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {tahapanProses.map((tahap, index) => (
-            <div 
-              key={index} 
+            <div
+              key={index}
               className="relative"
               onMouseEnter={() => setActiveStep(index)}
               onMouseLeave={() => setActiveStep(null)}
@@ -69,22 +71,28 @@ export function ProsesPenerbitanSection() {
               )}
 
               {/* Step Card */}
-              <div className={`relative z-10 text-center transition-all duration-500 ${
-                activeStep === index ? "transform -translate-y-4" : ""
-              }`}>
-                <div className={`w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl transition-all duration-500 ${
-                  activeStep === index
-                    ? "bg-gradient-to-br from-[#14b8a6] to-[#0d7377] text-white scale-110 rotate-6"
-                    : "bg-white text-[#14b8a6] border-2 border-[#14b8a6]"
-                }`}>
+              <div
+                className={`relative z-10 text-center transition-all duration-500 ${
+                  activeStep === index ? "transform -translate-y-4" : ""
+                }`}
+              >
+                <div
+                  className={`w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-xl transition-all duration-500 ${
+                    activeStep === index
+                      ? "bg-gradient-to-br from-[#14b8a6] to-[#0d7377] text-white scale-110 rotate-6"
+                      : "bg-white text-[#14b8a6] border-2 border-[#14b8a6]"
+                  }`}
+                >
                   {tahap.nomor}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">
                   {tahap.judul}
                 </h3>
-                <p className={`text-gray-600 leading-relaxed transition-all duration-300 ${
-                  activeStep === index ? "text-gray-700" : ""
-                }`}>
+                <p
+                  className={`text-gray-600 leading-relaxed transition-all duration-300 ${
+                    activeStep === index ? "text-gray-700" : ""
+                  }`}
+                >
                   {tahap.deskripsi}
                 </p>
               </div>

@@ -20,20 +20,19 @@ datasource db {
 enum JenisPeran {
   penulis
   editor
-  percetakan
   admin
 
   @@map("jenis_peran")
 }
 
 enum StatusNaskah {
-  draft
-  diajukan
-  dalam_review
-  perlu_revisi
-  disetujui
-  ditolak
-  diterbitkan
+  draft           // Draft awal (belum diajukan)
+  diajukan        // 1. Submit - sudah diajukan untuk review
+  dalam_review    // 2. Review - dalam proses review oleh editor
+  dalam_editing   // 3. Editing - proses perbaikan dari hasil review
+  siap_terbit     // 4. Siap Terbit - pengurusan ISBN & dokumen
+  diterbitkan     // 5. Terbit - sudah dipublikasikan
+  ditolak         // Status khusus: naskah ditolak
 
   @@map("status_naskah")
 }
@@ -55,50 +54,6 @@ enum Rekomendasi {
   @@map("rekomendasi")
 }
 
-enum StatusPesanan {
-  tertunda
-  diterima
-  dalam_produksi
-  kontrol_kualitas
-  siap
-  dikirim
-  terkirim
-  selesai
-  dibatalkan
-
-  @@map("status_pesanan")
-}
-
-enum StatusPengiriman {
-  diproses
-  dalam_perjalanan
-  terkirim
-  gagal
-
-  @@map("status_pengiriman")
-}
-
-enum StatusPembayaran {
-  tertunda
-  diproses
-  berhasil
-  gagal
-  dibatalkan
-  dikembalikan
-
-  @@map("status_pembayaran")
-}
-
-enum MetodePembayaran {
-  transfer_bank
-  kartu_kredit
-  e_wallet
-  virtual_account
-  cod
-
-  @@map("metode_pembayaran")
-}
-
 enum TipeNotifikasi {
   info
   sukses
@@ -115,27 +70,65 @@ enum Platform {
   @@map("platform")
 }
 
-enum FormatBuku {
-  A4
-  A5
-  B5
+enum StatusPenerbitan {
+  draft                   // Baru dibuat
+  menunggu_pembayaran     // Menunggu pembayaran paket
+  pembayaran_dikonfirmasi // Pembayaran sudah dikonfirmasi
+  naskah_dikirim          // Naskah sudah dikirim
+  dalam_pemeriksaan       // Editor memeriksa kelengkapan
+  perlu_revisi            // Butuh revisi dari penulis
+  proses_editing          // Sedang editing/proofreading
+  proses_layout           // Sedang layout sampul dan isi
+  proses_isbn             // Pengurusan ISBN
+  siap_terbit             // Siap dipublikasi
+  diterbitkan             // Sudah terbit
+  dalam_distribusi        // Sedang dalam proses distribusi
 
-  @@map("format_buku")
+  @@map("status_penerbitan")
+}
+
+enum StatusKelengkapan {
+  belum_diperiksa
+  lengkap
+  tidak_lengkap
+
+  @@map("status_kelengkapan")
+}
+
+enum JenisSampul {
+  softcover
+  hardcover
+
+  @@map("jenis_sampul")
 }
 
 enum JenisKertas {
-  HVS
-  BOOKPAPER
-  ART_PAPER
+  hvs_70
+  hvs_80
+  bookpaper_55
+  bookpaper_70
+  artpaper_100
+  artpaper_120
 
   @@map("jenis_kertas")
 }
 
-enum JenisCover {
-  SOFTCOVER
-  HARDCOVER
+enum JenisJilid {
+  lem_panas
+  jahit_benang
+  spiral
+  ring
 
-  @@map("jenis_cover")
+  @@map("jenis_jilid")
+}
+
+enum StatusPembayaranTerbit {
+  belum_bayar
+  menunggu_konfirmasi
+  lunas
+  dibatalkan
+
+  @@map("status_pembayaran_terbit")
 }
 
 // ============================================
@@ -169,16 +162,11 @@ model Pengguna {
   profilPenulis    ProfilPenulis?
   naskah           Naskah[]
   review           ReviewNaskah[]
-  pesananCetak     PesananCetak[]
-  pesananPercetakan PesananCetak[] @relation("PesananPercetakan")
-  pembayaran       Pembayaran[]
   notifikasi       Notifikasi[]
   logAktivitas     LogAktivitas[]
   tokenRefresh     TokenRefresh[]
   file             File[]
-  
-  // Tarif system relations
-  parameterHarga   ParameterHargaPercetakan[]  @relation("ParameterHarga")
+  pesananTerbit    PesananTerbit[]
 
   @@index([googleId], map: "idx_pengguna_google_id")
   @@index([provider], map: "idx_pengguna_provider")
@@ -243,7 +231,7 @@ model ProfilPenulis {
 }
 
 // ============================================
-// CONTENT MANAGEMENT (8 tabel)
+// CONTENT MANAGEMENT (7 tabel)
 // ============================================
 
 model Naskah {
@@ -255,28 +243,33 @@ model Naskah {
   isbn           String?      @unique
   idKategori     String
   idGenre        String
-  formatBuku     FormatBuku   @default(A5)
   bahasaTulis    String       @default("id")
+  formatBuku     String       @default("A5") // A4, A5, B5 - ukuran buku
   jumlahHalaman  Int?
   jumlahKata     Int?
   status         StatusNaskah @default(draft)
   urlSampul      String?
   urlFile        String?
   publik         Boolean      @default(false)
-  biayaProduksi  Decimal?     @db.Decimal(10, 2)
   hargaJual      Decimal?     @db.Decimal(10, 2)
   diterbitkanPada DateTime?
   dibuatPada     DateTime     @default(now())
   diperbaruiPada DateTime     @updatedAt
 
+  // Dokumen Kelengkapan (untuk tahap Siap Terbit)
+  urlSuratPerjanjian    String?  // Surat perjanjian terbit buku
+  urlSuratKeaslian      String?  // Surat pernyataan keaslian karya
+  urlProposalNaskah     String?  // Proposal naskah buku
+  urlBuktiTransfer      String?  // Bukti transfer biaya penerbitan
+
   // Relations
-  penulis      Pengguna       @relation(fields: [idPenulis], references: [id])
-  kategori     Kategori       @relation(fields: [idKategori], references: [id])
-  genre        Genre          @relation(fields: [idGenre], references: [id])
-  revisi       RevisiNaskah[]
-  review       ReviewNaskah[]
-  pesananCetak PesananCetak[]
-  tags         TagNaskah[]
+  penulis       Pengguna        @relation(fields: [idPenulis], references: [id])
+  kategori      Kategori        @relation(fields: [idKategori], references: [id])
+  genre         Genre           @relation(fields: [idGenre], references: [id])
+  revisi        RevisiNaskah[]
+  review        ReviewNaskah[]
+  tags          TagNaskah[]
+  pesananTerbit PesananTerbit[]
 
   @@index([idPenulis])
   @@index([status])
@@ -361,7 +354,7 @@ model RevisiNaskah {
 }
 
 // ============================================
-// REVIEW SYSTEM (3 tabel)
+// REVIEW SYSTEM (2 tabel)
 // ============================================
 
 model ReviewNaskah {
@@ -398,171 +391,6 @@ model FeedbackReview {
   review ReviewNaskah @relation(fields: [idReview], references: [id], onDelete: Cascade)
 
   @@map("feedback_review")
-}
-
-// ============================================
-// PRINTING SYSTEM (5 tabel)
-// ============================================
-
-model PesananCetak {
-  id                     String        @id @default(uuid())
-  idNaskah               String
-  idPemesan              String
-  idPercetakan           String?       // Percetakan yang dipilih
-  nomorPesanan           String        @unique
-  jumlah                 Int
-  
-  // Snapshot data dari Naskah (disalin saat order dibuat)
-  judulSnapshot          String
-  formatSnapshot         String
-  jumlahHalamanSnapshot  Int
-  
-  // Spesifikasi pesanan
-  formatKertas           String        // A4, A5, dll
-  jenisKertas            String        // HVS, Art Paper, dll
-  jenisCover             String        // Soft cover, Hard cover
-  finishingTambahan      String[]      // Laminasi, emboss, dll
-  catatan                String?       @db.Text
-  hargaTotal             Decimal       @db.Decimal(10, 2)
-  
-  status                 StatusPesanan @default(tertunda)
-  tanggalPesan           DateTime      @default(now())
-  estimasiSelesai        DateTime?
-  tanggalSelesai         DateTime?
-  catatanPenerimaan      String?       @db.Text  // Catatan saat konfirmasi penerimaan
-  diperbaruiPada         DateTime      @updatedAt
-
-  // Relations
-  naskah                 Naskah          @relation(fields: [idNaskah], references: [id])
-  pemesan                Pengguna        @relation(fields: [idPemesan], references: [id])
-  percetakan             Pengguna?       @relation("PesananPercetakan", fields: [idPercetakan], references: [id])
-  pembayaran             Pembayaran?
-  pengiriman             Pengiriman?
-  logProduksi            LogProduksi[]
-
-  @@index([nomorPesanan])
-  @@index([status])
-  @@index([idPemesan, status]) // User orders: filter by user + status
-  @@index([idPercetakan, status]) // Percetakan orders: filter by percetakan + status
-  @@index([status, tanggalPesan]) // Production queue: filter by status + sort by date
-  @@index([tanggalPesan]) // Order history: sort by order date
-  @@map("pesanan_cetak")
-}
-
-model LogProduksi {
-  id             String   @id @default(uuid())
-  idPesanan      String
-  tahapan        String
-  deskripsi      String?  @db.Text
-  dibuatPada     DateTime @default(now())
-
-  pesanan PesananCetak @relation(fields: [idPesanan], references: [id], onDelete: Cascade)
-
-  @@map("log_produksi")
-}
-
-model Pengiriman {
-  id                String            @id @default(uuid())
-  idPesanan         String            @unique
-  namaEkspedisi     String
-  nomorResi         String?
-  biayaPengiriman   Decimal           @db.Decimal(10, 2)
-  alamatTujuan      String            @db.Text
-  namaPenerima      String
-  teleponPenerima   String
-  status            StatusPengiriman  @default(diproses)
-  tanggalKirim      DateTime?
-  estimasiTiba      DateTime?
-  tanggalTiba       DateTime?
-  dibuatPada        DateTime          @default(now())
-  diperbaruiPada    DateTime          @updatedAt
-
-  pesanan      PesananCetak   @relation(fields: [idPesanan], references: [id], onDelete: Cascade)
-  trackingLogs TrackingLog[]
-
-  @@map("pengiriman")
-}
-
-model TrackingLog {
-  id             String   @id @default(uuid())
-  idPengiriman   String
-  lokasi         String
-  status         String
-  deskripsi      String?
-  waktu          DateTime @default(now())
-
-  pengiriman Pengiriman @relation(fields: [idPengiriman], references: [id], onDelete: Cascade)
-
-  @@map("tracking_log")
-}
-
-// Skema tarif percetakan - setiap skema punya nama dan komponen harga sendiri
-// 1 percetakan bisa punya multiple skema (Tarif Standar, Tarif Diskon, dll)
-// Hanya 1 skema yang aktif dalam 1 waktu per percetakan
-model ParameterHargaPercetakan {
-  id                String   @id @default(uuid())
-  idPercetakan      String   // Multiple skema per percetakan allowed
-  
-  // Identitas skema tarif
-  namaKombinasi     String   @default("Tarif Default") // "Tarif Standar", "Tarif Diskon", "Tarif Premium"
-  deskripsi         String?  @db.Text
-  
-  // Harga format kertas per lembar
-  hargaKertasA4     Decimal  @db.Decimal(10, 2)
-  hargaKertasA5     Decimal  @db.Decimal(10, 2)
-  hargaKertasB5     Decimal  @default(0) @db.Decimal(10, 2)
-  
-  // Harga jenis cover per unit
-  hargaSoftcover    Decimal  @db.Decimal(10, 2)
-  hargaHardcover    Decimal  @db.Decimal(10, 2)
-  
-  // Biaya tambahan
-  biayaJilid        Decimal  @db.Decimal(10, 2)
-  minimumPesanan    Int      @default(1)
-  
-  // Status - hanya 1 yang aktif per percetakan
-  aktif             Boolean  @default(false)
-  
-  dibuatPada        DateTime @default(now())
-  diperbaruiPada    DateTime @updatedAt
-
-  percetakan        Pengguna @relation("ParameterHarga", fields: [idPercetakan], references: [id], onDelete: Cascade)
-
-  @@unique([idPercetakan, namaKombinasi])  // Nama skema harus unik per percetakan
-  @@index([idPercetakan])
-  @@index([aktif])
-  @@index([idPercetakan, aktif])  // Query skema aktif per percetakan
-  @@map("parameter_harga_percetakan")
-}
-
-
-
-// ============================================
-// PAYMENT SYSTEM (2 tabel)
-// ============================================
-
-model Pembayaran {
-  id                 String           @id @default(uuid())
-  idPesanan          String           @unique
-  idPengguna         String
-  nomorTransaksi     String           @unique
-  jumlah             Decimal          @db.Decimal(10, 2)
-  metodePembayaran   MetodePembayaran
-  status             StatusPembayaran @default(tertunda)
-  urlBukti           String?
-  catatanPembayaran  String?          @db.Text
-  tanggalPembayaran  DateTime?
-  dibuatPada         DateTime         @default(now())
-  diperbaruiPada     DateTime         @updatedAt
-
-  pesanan  PesananCetak @relation(fields: [idPesanan], references: [id])
-  pengguna Pengguna     @relation(fields: [idPengguna], references: [id])
-
-  @@index([nomorTransaksi])
-  @@index([status])
-  @@index([idPengguna, status]) // User payments: filter by user + status
-  @@index([status, dibuatPada]) // Payment queue: filter by status + sort by date
-  @@map("pembayaran")
 }
 
 // ============================================
@@ -609,7 +437,7 @@ model LogAktivitas {
   idPengguna     String?
   jenis          String   // login, logout, verifikasi_email, lupa_password, reset_password, dll
   aksi           String
-  entitas        String?  // naskah, review, pesanan, dll
+  entitas        String?  // naskah, review, dll
   idEntitas      String?
   deskripsi      String?  @db.Text
   ipAddress      String?
@@ -650,7 +478,6 @@ model StatistikNaskah {
   totalDiunduh      Int      @default(0)
   totalDibaca       Int      @default(0)
   totalDibagikan    Int      @default(0)
-  totalDicetak      Int      @default(0)
   ratingRataRata    Decimal  @default(0) @db.Decimal(3, 2)
   totalRating       Int      @default(0)
   terakhirDiperbarui DateTime @updatedAt
@@ -697,4 +524,174 @@ model File {
   @@index([tujuan])
   @@index([idReferensi])
   @@map("file")
+}
+
+// ============================================
+// PENERBITAN WORKFLOW (5 tabel)
+// ============================================
+
+model PaketPenerbitan {
+  id                     String   @id @default(uuid())
+  kode                   String   @unique
+  nama                   String
+  deskripsi              String   @db.Text
+  harga                  Decimal  @db.Decimal(12, 2)
+  jumlahBukuMin          Int      // Minimum buku yang harus dipesan
+  termasukProofreading   Boolean  @default(false)
+  termasukLayoutDesain   Boolean  @default(true)
+  termasukISBN           Boolean  @default(true)
+  termasukEbook          Boolean  @default(false)
+  revisiMaksimal         Int      @default(2) // Jumlah revisi minor
+  fiturTambahan          String[] // Array fitur tambahan
+  aktif                  Boolean  @default(true)
+  urutan                 Int      @default(0) // Untuk sorting tampilan
+  dibuatPada             DateTime @default(now())
+  diperbaruiPada         DateTime @updatedAt
+
+  // Relations
+  pesananTerbit PesananTerbit[]
+
+  @@map("paket_penerbitan")
+}
+
+model PesananTerbit {
+  id                  String                 @id @default(uuid())
+  nomorPesanan        String                 @unique
+  idPenulis           String
+  idNaskah            String
+  idPaket             String
+
+  status              StatusPenerbitan       @default(draft)
+  jumlahBuku          Int
+
+  // Status sub-proses
+  statusEditing       String                 @default("belum_mulai")
+  statusLayout        String                 @default("belum_mulai")
+  statusProofreading  String                 @default("tidak_termasuk")
+  
+  // ISBN
+  isbn                String?
+  statusISBN          String                 @default("belum_diurus")
+
+  // Harga & Pembayaran
+  totalHarga          Decimal                @db.Decimal(12, 2)
+  statusPembayaran    StatusPembayaranTerbit @default(belum_bayar)
+  metodePembayaran    String?
+  buktiPembayaran     String?
+
+  // Revision tracking
+  jumlahRevisiDesain  Int                    @default(0)
+  jumlahRevisiLayout  Int                    @default(0)
+  revisiMaksimal      Int                    @default(2)
+
+  // Catatan
+  catatanPenulis      String?                @db.Text
+  catatanEditor       String?                @db.Text
+  catatanAdmin        String?                @db.Text
+
+  // Timestamps
+  tanggalPesan        DateTime               @default(now())
+  tanggalBayar        DateTime?
+  tanggalMulaiProses  DateTime?
+  tanggalSelesai      DateTime?
+  diperbaruiPada      DateTime               @updatedAt
+
+  // Relations
+  penulis         Pengguna           @relation(fields: [idPenulis], references: [id])
+  naskah          Naskah             @relation(fields: [idNaskah], references: [id])
+  paket           PaketPenerbitan    @relation(fields: [idPaket], references: [id])
+  spesifikasi     SpesifikasiBuku?
+  kelengkapan     KelengkapanNaskah?
+  logProsesTerbit LogProsesTerbit[]
+
+  @@index([idPenulis])
+  @@index([idNaskah])
+  @@index([status])
+  @@index([statusPembayaran])
+  @@map("pesanan_terbit")
+}
+
+model SpesifikasiBuku {
+  id                  String      @id @default(uuid())
+  idPesananTerbit     String      @unique
+
+  // Sampul
+  jenisSampul         JenisSampul @default(softcover)
+  lapisSampul         String?     @default("doff") // glossy, doff
+
+  // Kertas Isi
+  jenisKertas         JenisKertas @default(bookpaper_55)
+  ukuranBuku          String      @default("A5") // A5, A4, B5, Custom
+  ukuranCustomPanjang Int?        // dalam mm
+  ukuranCustomLebar   Int?        // dalam mm
+
+  // Jilid & Finishing
+  jenisJilid          JenisJilid  @default(lem_panas)
+  laminasi            String?     @default("doff") // glossy, doff
+
+  // Tambahan
+  pembatasBuku        Boolean     @default(false)
+  packingKhusus       Boolean     @default(false)
+  catatanTambahan     String?     @db.Text
+
+  dibuatPada          DateTime    @default(now())
+  diperbaruiPada      DateTime    @updatedAt
+
+  // Relations
+  pesananTerbit PesananTerbit @relation(fields: [idPesananTerbit], references: [id], onDelete: Cascade)
+
+  @@map("spesifikasi_buku")
+}
+
+model KelengkapanNaskah {
+  id                  String            @id @default(uuid())
+  idPesananTerbit     String            @unique
+
+  // Kelengkapan wajib
+  adaKataPengantar    Boolean           @default(false)
+  adaDaftarIsi        Boolean           @default(false)
+  adaBabIsi           Boolean           @default(false)
+  adaDaftarPustaka    Boolean           @default(false)
+  adaTentangPenulis   Boolean           @default(false)
+  adaSinopsis         Boolean           @default(false)
+
+  // Kelengkapan opsional
+  adaLampiran         Boolean           @default(false)
+
+  // URL file kelengkapan (jika diupload terpisah)
+  urlKataPengantar    String?
+  urlDaftarIsi        String?
+  urlDaftarPustaka    String?
+  urlTentangPenulis   String?
+  urlSinopsis         String?
+  urlLampiran         String?
+
+  catatanKelengkapan  String?           @db.Text
+  statusVerifikasi    StatusKelengkapan @default(belum_diperiksa)
+  diverifikasiOleh    String?
+  diverifikasiPada    DateTime?
+
+  dibuatPada          DateTime          @default(now())
+  diperbaruiPada      DateTime          @updatedAt
+
+  // Relations
+  pesananTerbit PesananTerbit @relation(fields: [idPesananTerbit], references: [id], onDelete: Cascade)
+
+  @@map("kelengkapan_naskah")
+}
+
+model LogProsesTerbit {
+  id                  String   @id @default(uuid())
+  idPesananTerbit     String
+  statusSebelumnya    String?
+  statusBaru          String
+  catatan             String?  @db.Text
+  dibuatOleh          String?
+  dibuatPada          DateTime @default(now())
+
+  // Relations
+  pesananTerbit PesananTerbit @relation(fields: [idPesananTerbit], references: [id], onDelete: Cascade)
+
+  @@index([idPesananTerbit])
+  @@map("log_proses_terbit")
 }

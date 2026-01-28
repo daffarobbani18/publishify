@@ -178,7 +178,7 @@ export class UploadController {
    * GET /upload - List files dengan pagination
    */
   @Get()
-  @Peran('penulis', 'editor', 'percetakan', 'admin')
+  @Peran('penulis', 'editor', 'admin')
   @ApiOperation({
     summary: 'List files dengan pagination dan filter',
     description:
@@ -207,7 +207,7 @@ export class UploadController {
    * GET /upload/metadata/:id - Get file metadata
    */
   @Get('metadata/:id')
-  @Peran('penulis', 'editor', 'percetakan', 'admin')
+  @Peran('penulis', 'editor', 'admin')
   @ApiOperation({
     summary: 'Get file metadata by ID',
     description: 'Ambil detail metadata file (termasuk info pengguna yang upload)',
@@ -272,7 +272,7 @@ export class UploadController {
    * GET /upload/:id - Get file URL
    */
   @Get(':id')
-  @Peran('penulis', 'editor', 'percetakan', 'admin')
+  @Peran('penulis', 'editor', 'admin')
   @ApiOperation({
     summary: 'Get file URL by ID',
     description: 'Ambil URL untuk mengakses file',
@@ -443,10 +443,7 @@ export class UploadController {
     status: 500,
     description: 'LibreOffice tidak terinstall atau error konversi',
   })
-  async konversiDocxKePdf(
-    @Param('id') id: string,
-    @PenggunaSaatIni('id') idPengguna: string,
-  ) {
+  async konversiDocxKePdf(@Param('id') id: string, @PenggunaSaatIni('id') idPengguna: string) {
     const result = await this.uploadService.konversiDocxKePdf(id, idPengguna);
     return {
       sukses: true,

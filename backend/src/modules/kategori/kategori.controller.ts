@@ -107,17 +107,25 @@ export class KategoriController {
     },
   })
   async ambilSemuaKategori(
-    @Query('halaman') halaman: number = 1,
-    @Query('limit') limit: number = 20,
+    @Query('halaman') halaman?: string | number,
+    @Query('limit') limit?: string | number,
     @Query('aktif') aktif?: string | boolean,
   ) {
+    // Convert to numbers with fallback defaults
+    const halamanNum = halaman ? Number(halaman) : 1;
+    const limitNum = limit ? Number(limit) : 20;
+
     // Convert aktif to boolean if provided
     let aktifFilter: boolean | undefined = undefined;
     if (aktif !== undefined) {
       aktifFilter = aktif === true || aktif === 'true';
     }
 
-    return this.kategoriService.ambilSemuaKategori(Number(halaman), Number(limit), aktifFilter);
+    return this.kategoriService.ambilSemuaKategori(
+      isNaN(halamanNum) ? 1 : halamanNum,
+      isNaN(limitNum) ? 20 : limitNum,
+      aktifFilter,
+    );
   }
 
   /**
