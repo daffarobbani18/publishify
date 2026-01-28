@@ -31,19 +31,22 @@ const libreConvert = promisify(libre.convert);
 @Injectable()
 export class UploadService {
   private readonly uploadDir = path.join(process.cwd(), 'uploads');
-  private readonly baseUrl = process.env.FRONTEND_URL || 'http://localhost:4000';
+  // Tidak perlu baseUrl lagi - kita simpan relative path saja
+  // Frontend akan handle transformasi ke full URL
 
   constructor(private readonly prisma: PrismaService) {
     this.ensureUploadDirectory();
   }
 
   /**
-   * Generate full URL untuk file
+   * Generate URL untuk file - sekarang return relative path saja
+   * Frontend akan handle transformasi ke full URL berdasarkan environment
    */
-  private getFullUrl(relativePath: string): string {
+  private buildFileUrl(relativePath: string): string {
     // Pastikan path dimulai dengan /
     const cleanPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
-    return `${this.baseUrl}${cleanPath}`;
+    // Return relative path saja, bukan full URL
+    return cleanPath;
   }
 
   /**
@@ -119,7 +122,8 @@ export class UploadService {
     const uniqueFilename = this.generateUniqueFilename(file.originalname);
     const filePath = path.join(this.uploadDir, dto.tujuan, uniqueFilename);
     const relativePath = `/uploads/${dto.tujuan}/${uniqueFilename}`;
-    const fullUrl = this.getFullUrl(relativePath);
+    // Simpan relative path saja, bukan full URL dengan localhost
+    const fileUrl = this.buildFileUrl(relativePath);
 
     try {
       // Simpan file ke disk
@@ -136,7 +140,7 @@ export class UploadService {
           ekstensi: path.extname(file.originalname),
           tujuan: dto.tujuan,
           path: filePath,
-          url: fullUrl,
+          url: fileUrl,  // Sekarang simpan relative path
           idReferensi: dto.idReferensi,
           deskripsi: dto.deskripsi,
         },
@@ -453,7 +457,7 @@ export class UploadService {
       const processedFilename = `${nameWithoutExt}_processed${ext}`;
       const processedPath = path.join(this.uploadDir, file.tujuan, processedFilename);
       const processedRelativePath = `/uploads/${file.tujuan}/${processedFilename}`;
-      const processedUrl = this.getFullUrl(processedRelativePath);
+      const processedUrl = this.buildFileUrl(processedRelativePath);
 
       // Save processed image
       await fs.writeFile(processedPath, processedBuffer);
@@ -565,7 +569,7 @@ export class UploadService {
       const pdfFilename = file.namaFileSimpan.replace(/\.(docx|doc)$/i, '.pdf');
       const pdfPath = path.join(this.uploadDir, file.tujuan, pdfFilename);
       const pdfRelativePath = `/uploads/${file.tujuan}/${pdfFilename}`;
-      const pdfUrl = this.getFullUrl(pdfRelativePath);
+      const pdfUrl = this.buildFileUrl(pdfRelativePath);
       
       // Simpan file PDF
       await fs.writeFile(pdfPath, pdfBuffer);
@@ -679,7 +683,7 @@ export class UploadService {
       const pdfFilename = originalFilename.replace(/\.(docx|doc)$/i, '.pdf');
       const pdfPath = path.join(this.uploadDir, tujuan, pdfFilename);
       const pdfRelativePath = `/uploads/${tujuan}/${pdfFilename}`;
-      const pdfUrl = this.getFullUrl(pdfRelativePath);
+      const pdfUrl = this.buildFileUrl(pdfRelativePath);
       
       // Simpan file PDF
       await fs.writeFile(pdfPath, pdfBuffer);

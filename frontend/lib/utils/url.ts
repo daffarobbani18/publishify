@@ -3,13 +3,24 @@
  */
 
 /**
- * Base URL untuk backend/uploads
+ * Get base URL untuk backend/uploads
  * Di production gunakan domain publishify.me
  * Di development gunakan localhost
  */
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 
-                    process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 
-                    'http://localhost:4000';
+function getBackendUrl(): string {
+  // Untuk browser, gunakan window.location.origin jika production
+  if (typeof window !== 'undefined') {
+    const origin = window.location.origin;
+    if (origin.includes('publishify.me')) {
+      return 'https://publishify.me';
+    }
+  }
+  
+  // Untuk server-side atau development
+  return process.env.NEXT_PUBLIC_BACKEND_URL || 
+         process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 
+         'http://localhost:4000';
+}
 
 /**
  * Build full URL untuk file upload (sampul, file naskah, dll)
@@ -38,7 +49,8 @@ export function getUploadUrl(relativePath: string | null | undefined): string {
   const cleanPath = relativePath.startsWith('/') ? relativePath : `/${relativePath}`;
 
   // Build full URL
-  return `${BACKEND_URL}${cleanPath}`;
+  const backendUrl = getBackendUrl();
+  return `${backendUrl}${cleanPath}`;
 }
 
 /**
@@ -78,5 +90,6 @@ export function sanitizeStoredUrl(url: string | null | undefined): string {
   if (!url) return '';
   
   // Replace localhost URLs dengan production URL
-  return url.replace(/http:\/\/localhost:\d+/, BACKEND_URL);
+  const backendUrl = getBackendUrl();
+  return url.replace(/http:\/\/localhost:\d+/, backendUrl);
 }

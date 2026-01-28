@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "sonner";
+import { getSampulUrl } from "@/lib/utils/url";
 import { naskahApi } from "@/lib/api/naskah";
 import {
   BookOpen,
@@ -141,7 +142,7 @@ export default function DaftarNaskahDiterbitkan() {
               <div className="relative h-64 bg-gradient-to-br from-teal-100 to-cyan-100">
                 {item.urlSampul ? (
                   <Image
-                    src={item.urlSampul}
+                    src={getSampulUrl(item.urlSampul)}
                     alt={item.judul}
                     fill
                     className="object-cover"

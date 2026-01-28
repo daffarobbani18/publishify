@@ -8,6 +8,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { getSampulUrl } from "@/lib/utils/url";
 import {
   ArrowLeft,
   Package,
@@ -263,7 +264,7 @@ export default function DetailPesananPage() {
               {pesanan.naskah?.urlSampul && (
                 <div className="relative w-24 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
                   <Image
-                    src={pesanan.naskah.urlSampul}
+                    src={getSampulUrl(pesanan.naskah.urlSampul)}
                     alt={pesanan.naskah.judul}
                     fill
                     className="object-cover"
